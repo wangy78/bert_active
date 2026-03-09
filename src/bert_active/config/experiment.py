@@ -14,7 +14,7 @@ class ModelConfig:
     name: str = "distilbert-base-uncased"
     num_labels: int = 4
     attn_implementation: str = "flash_attention_2"
-    torch_dtype: str = "float16"
+    torch_dtype: str = "bfloat16"
     max_length: int = 128
 
 

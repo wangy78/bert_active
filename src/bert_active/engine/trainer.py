@@ -81,9 +81,6 @@ class Trainer:
             num_training_steps=total_steps,
         )
 
-        # Create gradient scaler for mixed precision training
-        scaler = torch.cuda.amp.GradScaler()
-
         # Training loop
         self.model.model.train()
         total_loss = 0.0
@@ -102,41 +99,29 @@ class Trainer:
                 attention_mask = batch["attention_mask"].to(self.model.device)
                 labels = batch["labels"].to(self.model.device)
 
-                # Zero gradients
                 optimizer.zero_grad()
 
-                # Forward pass with mixed precision
-                with torch.cuda.amp.autocast():
-                    outputs = self.model.model(
-                        input_ids=input_ids,
-                        attention_mask=attention_mask,
-                        labels=labels,
-                    )
-                    loss = outputs.loss
+                outputs = self.model.model(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                    labels=labels,
+                )
+                loss = outputs.loss
 
-                # Backward pass with gradient scaling
-                scaler.scale(loss).backward()  # type: ignore[no-untyped-call]
+                loss.backward()
 
-                # Gradient clipping
-                scaler.unscale_(optimizer)
                 torch.nn.utils.clip_grad_norm_(
                     self.model.model.parameters(),
                     self.config.max_grad_norm,
                 )
 
-                # Optimizer step with scaler
-                scaler.step(optimizer)
-                scaler.update()
-
-                # Scheduler step
+                optimizer.step()
                 scheduler.step()
 
-                # Track loss
                 epoch_loss += loss.item()
                 total_loss += loss.item()
                 total_batches += 1
 
-                # Update progress bar
                 progress_bar.set_postfix({"loss": loss.item()})
 
             avg_epoch_loss = epoch_loss / len(train_loader)
@@ -178,20 +163,17 @@ class Trainer:
             progress_bar = tqdm(eval_loader, desc="Evaluating")
 
             for batch in progress_bar:
-                # Move batch to device
                 input_ids = batch["input_ids"].to(self.model.device)
                 attention_mask = batch["attention_mask"].to(self.model.device)
                 labels = batch["labels"].to(self.model.device)
 
-                # Forward pass with mixed precision
-                with torch.cuda.amp.autocast():
-                    outputs = self.model.model(
-                        input_ids=input_ids,
-                        attention_mask=attention_mask,
-                        labels=labels,
-                    )
-                    loss = outputs.loss
-                    logits = outputs.logits
+                outputs = self.model.model(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                    labels=labels,
+                )
+                loss = outputs.loss
+                logits = outputs.logits
 
                 # Track loss
                 total_loss += loss.item()
