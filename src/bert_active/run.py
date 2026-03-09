@@ -9,10 +9,12 @@ experiment execution, and results visualization.
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import logging
 import sys
 from pathlib import Path
 
+import wandb
 from bert_active.config.experiment import ExperimentConfig
 from bert_active.engine.active_loop import ActiveLearningLoop
 
@@ -73,6 +75,18 @@ def main() -> None:
         default=None,
         help="Override random seed for reproducibility",
     )
+    parser.add_argument(
+        "--wandb",
+        action="store_true",
+        default=None,
+        help="Enable wandb logging (overrides config)",
+    )
+    parser.add_argument(
+        "--no-wandb",
+        action="store_true",
+        default=None,
+        help="Disable wandb logging (overrides config)",
+    )
 
     args = parser.parse_args()
 
@@ -110,43 +124,61 @@ def main() -> None:
         config.data.seed = args.seed
         logger.info(f"Overriding seed: {args.seed}")
 
-    # Print configuration summary
+    # Update experiment name to reflect strategy and n_rounds if overridden
+    if args.strategy is not None or args.n_rounds is not None:
+        config.experiment_name = f"agnews_{config.active_learning.strategy}_r{config.active_learning.n_rounds}"
+        logger.info(f"Updated experiment_name: {config.experiment_name}")
+
+    if args.wandb:
+        config.wandb.enabled = True
+    elif args.no_wandb:
+        config.wandb.enabled = False
+
     _print_config_summary(config)
 
-    # Run active learning loop
-    logger.info("Starting active learning experiment...")
-    loop = ActiveLearningLoop(config)
-    metrics = loop.run()
+    wandb_run: wandb.Run | None = None
+    if config.wandb.enabled:
+        wandb_run = wandb.init(
+            project=config.wandb.project,
+            entity=config.wandb.entity,
+            name=config.experiment_name,
+            config=_config_to_dict(config),
+            tags=config.wandb.tags,
+            notes=config.wandb.notes,
+        )
 
-    # Save and visualize results
-    output_path = Path(config.output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
+    try:
+        logger.info("Starting active learning experiment...")
+        loop = ActiveLearningLoop(config, wandb_run=wandb_run)
+        metrics = loop.run()
 
-    logger.info(f"Saving metrics to {output_path}")
-    metrics.save(str(output_path))
+        output_path = Path(config.output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
 
-    logger.info("Plotting learning curves...")
-    metrics.plot_learning_curves(str(output_path))
+        logger.info(f"Saving metrics to {output_path}")
+        metrics.save(str(output_path))
 
-    # Print final summary
-    summary = metrics.get_summary()
-    logger.info("Active learning experiment completed successfully!")
-    logger.info(f"Results summary:\n{summary}")
+        logger.info("Plotting learning curves...")
+        metrics.plot_learning_curves(str(output_path))
 
-    print(f"\n{'=' * 60}")
-    print("EXPERIMENT COMPLETE")
-    print(f"{'=' * 60}")
-    print(f"Output directory: {output_path}")
-    print(f"Results summary:\n{summary}")
+        summary = metrics.get_summary()
+        logger.info("Active learning experiment completed successfully!")
+        logger.info(f"Results summary:\n{summary}")
+
+        if wandb_run is not None:
+            wandb_run.summary.update(summary)
+
+        print(f"\n{'=' * 60}")
+        print("EXPERIMENT COMPLETE")
+        print(f"{'=' * 60}")
+        print(f"Output directory: {output_path}")
+        print(f"Results summary:\n{summary}")
+    finally:
+        if wandb_run is not None:
+            wandb_run.finish()
 
 
 def _print_config_summary(config: ExperimentConfig) -> None:
-    """
-    Print a summary of the experiment configuration.
-
-    Args:
-        config: The experiment configuration object.
-    """
     print(f"\n{'=' * 60}")
     print("EXPERIMENT CONFIGURATION")
     print(f"{'=' * 60}")
@@ -156,7 +188,19 @@ def _print_config_summary(config: ExperimentConfig) -> None:
     print(f"Initial Labeled Set: {config.active_learning.n_init}")
     print(f"Output Directory: {config.output_dir}")
     print(f"Random Seed: {config.data.seed}")
+    print(f"Wandb: {'enabled' if config.wandb.enabled else 'disabled'}")
     print(f"{'=' * 60}\n")
+
+
+def _config_to_dict(config: ExperimentConfig) -> dict[str, object]:
+    return {
+        "model": dataclasses.asdict(config.model),
+        "data": dataclasses.asdict(config.data),
+        "trainer": dataclasses.asdict(config.trainer),
+        "active_learning": dataclasses.asdict(config.active_learning),
+        "output_dir": config.output_dir,
+        "experiment_name": config.experiment_name,
+    }
 
 
 if __name__ == "__main__":

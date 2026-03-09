@@ -122,13 +122,13 @@ def load_ag_news(seed: int = 42, test_size: int | None = None) -> tuple[DataPool
     train_split = ds["train"]
     test_split = ds["test"]
 
-    train_texts: list[str] = train_split["text"]  # type: ignore[assignment]
+    train_texts: list[str] = list(train_split["text"])
     train_labels = np.array(train_split["label"], dtype=np.intp)
 
     pool = DataPool(texts=train_texts, labels=train_labels)
 
     # Test data — raw for now, tokenization happens externally
-    test_texts: list[str] = test_split["text"]  # type: ignore[assignment]
+    test_texts: list[str] = list(test_split["text"])
     test_labels_raw = np.array(test_split["label"], dtype=np.intp)
 
     if test_size is not None:

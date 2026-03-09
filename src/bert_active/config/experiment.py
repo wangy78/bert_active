@@ -47,11 +47,21 @@ class ActiveLearningConfig:
 
 
 @dataclass
+class WandbConfig:
+    enabled: bool = False
+    project: str = "bert-active"
+    entity: str | None = None
+    tags: list[str] = field(default_factory=list)
+    notes: str = ""
+
+
+@dataclass
 class ExperimentConfig:
     model: ModelConfig = field(default_factory=ModelConfig)
     data: DataConfig = field(default_factory=DataConfig)
     trainer: TrainerConfig = field(default_factory=TrainerConfig)
     active_learning: ActiveLearningConfig = field(default_factory=ActiveLearningConfig)
+    wandb: WandbConfig = field(default_factory=WandbConfig)
     output_dir: str = "outputs"
     experiment_name: str = "default"
 
@@ -70,6 +80,8 @@ class ExperimentConfig:
             config.trainer = _merge_dataclass(TrainerConfig, raw["trainer"])
         if "active_learning" in raw:
             config.active_learning = _merge_dataclass(ActiveLearningConfig, raw["active_learning"])
+        if "wandb" in raw:
+            config.wandb = _merge_dataclass(WandbConfig, raw["wandb"])
         if "output_dir" in raw:
             config.output_dir = raw["output_dir"]
         if "experiment_name" in raw:
@@ -78,7 +90,30 @@ class ExperimentConfig:
 
 
 def _merge_dataclass(cls: type[Any], overrides: dict[str, Any]) -> Any:
-    """Create dataclass instance from dict, ignoring unknown keys."""
-    valid_fields = {f.name for f in cls.__dataclass_fields__.values()}  # type: ignore[attr-defined]
-    filtered = {k: v for k, v in overrides.items() if k in valid_fields}
-    return cls(**filtered)
+    """Create dataclass instance from dict, ignoring unknown keys and converting types."""
+    fields = cls.__dataclass_fields__  # type: ignore[attr-defined]
+    converted = {}
+
+    for key, value in overrides.items():
+        if key not in fields:
+            continue  # Ignore unknown keys
+
+        field_type = fields[key].type
+        # Handle string type annotations (from __future__ import annotations)
+        type_name = field_type if isinstance(field_type, str) else field_type.__name__
+
+        # Convert string values to the correct type if needed
+        if isinstance(value, str) and type_name != "str":
+            try:
+                if type_name == "float":
+                    converted[key] = float(value)
+                elif type_name == "int":
+                    converted[key] = int(value)
+                else:
+                    converted[key] = value
+            except (ValueError, TypeError):
+                converted[key] = value
+        else:
+            converted[key] = value
+
+    return cls(**converted)

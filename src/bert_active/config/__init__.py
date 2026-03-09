@@ -6,6 +6,7 @@ from bert_active.config.experiment import (
     ExperimentConfig,
     ModelConfig,
     TrainerConfig,
+    WandbConfig,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "ExperimentConfig",
     "ModelConfig",
     "TrainerConfig",
+    "WandbConfig",
 ]

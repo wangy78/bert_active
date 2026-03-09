@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from bert_active.config.experiment import ExperimentConfig
 from bert_active.data.dataset import load_ag_news
 from bert_active.data.tokenization import (
@@ -23,6 +25,9 @@ from bert_active.strategies.uncertainty import (
     MarginStrategy,
 )
 
+if TYPE_CHECKING:
+    import wandb
+
 STRATEGY_REGISTRY: dict[str, type[Strategy]] = {
     "random": RandomStrategy,
     "least_confidence": LeastConfidenceStrategy,
@@ -37,13 +42,13 @@ STRATEGY_REGISTRY: dict[str, type[Strategy]] = {
 class ActiveLearningLoop:
     """Orchestrates the active learning training loop."""
 
-    def __init__(self, config: ExperimentConfig) -> None:
-        """Initialize the active learning loop.
-
-        Args:
-            config: Experiment configuration containing all settings.
-        """
+    def __init__(
+        self,
+        config: ExperimentConfig,
+        wandb_run: wandb.Run | None = None,
+    ) -> None:
         self.config = config
+        self.wandb_run = wandb_run
 
         # Create tokenizer
         self.tokenizer = create_tokenizer(config.model.name)
@@ -79,6 +84,7 @@ class ActiveLearningLoop:
         self.trainer = Trainer(
             model=self.model_wrapper,
             config=config.trainer,
+            wandb_run=wandb_run,
         )
 
         # Look up and instantiate strategy
@@ -105,15 +111,12 @@ class ActiveLearningLoop:
         Returns:
             MetricsTracker containing all metrics from the experiment.
         """
-        # Initialize pool with initial labeled samples
         self.pool.initialize(
             n_init=self.config.active_learning.n_init,
             seed=self.config.data.seed,
         )
 
-        # Active learning loop
         for round_num in range(self.config.active_learning.n_rounds):
-            # Build training dataset from labeled data
             train_dataset = build_dataset(
                 tokenizer=self.tokenizer,
                 texts=self.pool.get_labeled_texts(),
@@ -121,13 +124,9 @@ class ActiveLearningLoop:
                 max_length=self.config.model.max_length,
             )
 
-            # Train model
             train_metrics = self.trainer.train(train_dataset)
-
-            # Evaluate on test set
             eval_metrics = self.trainer.evaluate(self.test_dataset)
 
-            # Log metrics
             n_labeled = self.pool.n_labeled
             self.metrics_tracker.log_round(
                 round_num=round_num,
@@ -136,7 +135,18 @@ class ActiveLearningLoop:
                 eval_metrics=eval_metrics,
             )
 
-            # Print round summary
+            if self.wandb_run is not None:
+                self.wandb_run.log(
+                    {
+                        "al/round": round_num,
+                        "al/n_labeled": n_labeled,
+                        "al/train_loss": train_metrics["train_loss"],
+                        "al/eval_loss": eval_metrics["eval_loss"],
+                        "al/eval_accuracy": eval_metrics["eval_accuracy"],
+                        "al/eval_f1_macro": eval_metrics["eval_f1_macro"],
+                    },
+                )
+
             print(
                 f"Round {round_num}: "
                 f"n_labeled={n_labeled}, "
@@ -144,7 +154,6 @@ class ActiveLearningLoop:
                 f"eval_f1={eval_metrics['eval_f1_macro']:.4f}"
             )
 
-            # Query strategy for next batch (skip on last round)
             if round_num < self.config.active_learning.n_rounds - 1:
                 query_indices = self.strategy.query(
                     n=self.config.active_learning.n_query,

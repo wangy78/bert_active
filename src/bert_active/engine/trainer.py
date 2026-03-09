@@ -16,6 +16,7 @@ from tqdm import tqdm
 from transformers import get_linear_schedule_with_warmup
 
 if TYPE_CHECKING:
+    import wandb
     from bert_active.config.experiment import TrainerConfig
     from bert_active.data.dataset import TextClassificationDataset
     from bert_active.models.classifier import ModelWrapper
@@ -33,28 +34,22 @@ class Trainer:
         config: Training configuration with hyperparameters.
     """
 
-    def __init__(self, model: ModelWrapper, config: TrainerConfig) -> None:
-        """Initialize the trainer.
-
-        Args:
-            model: Model wrapper containing the model and device.
-            config: Training configuration with hyperparameters.
-        """
+    def __init__(
+        self,
+        model: ModelWrapper,
+        config: TrainerConfig,
+        wandb_run: wandb.Run | None = None,
+    ) -> None:
         self.model = model
         self.config = config
+        self.wandb_run = wandb_run
+        self._global_step = 0
 
     def train(self, train_dataset: TextClassificationDataset) -> dict[str, float]:
         """Run training loop for the configured number of epochs.
 
-        Creates a DataLoader, optimizer, and learning rate scheduler, then runs
-        the training loop with mixed precision and gradient clipping.
-
-        Args:
-            train_dataset: Dataset containing training examples.
-
         Returns:
-            Dictionary containing training metrics. At minimum includes:
-                - train_loss: Average training loss across all epochs.
+            Dictionary with at minimum ``train_loss`` (average over all epochs).
         """
         # Create DataLoader
         train_loader = DataLoader(
@@ -124,8 +119,21 @@ class Trainer:
 
                 progress_bar.set_postfix({"loss": loss.item()})
 
+                self._global_step += 1
+                if self.wandb_run is not None:
+                    self.wandb_run.log(
+                        {"train/loss_step": loss.item(), "train/lr": scheduler.get_last_lr()[0]},
+                        step=self._global_step,
+                    )
+
             avg_epoch_loss = epoch_loss / len(train_loader)
             print(f"Epoch {epoch + 1} - Average Loss: {avg_epoch_loss:.4f}")
+
+            if self.wandb_run is not None:
+                self.wandb_run.log(
+                    {"train/loss_epoch": avg_epoch_loss, "train/epoch": epoch + 1},
+                    step=self._global_step,
+                )
 
         avg_train_loss = total_loss / total_batches
 
@@ -134,16 +142,8 @@ class Trainer:
     def evaluate(self, eval_dataset: TextClassificationDataset) -> dict[str, float]:
         """Run evaluation on the provided dataset.
 
-        Computes loss, accuracy, and macro F1 score on the evaluation dataset.
-
-        Args:
-            eval_dataset: Dataset containing evaluation examples.
-
         Returns:
-            Dictionary containing evaluation metrics:
-                - eval_loss: Average evaluation loss.
-                - eval_accuracy: Classification accuracy.
-                - eval_f1_macro: Macro-averaged F1 score.
+            Dictionary with ``eval_loss``, ``eval_accuracy``, and ``eval_f1_macro``.
         """
         # Create DataLoader
         eval_loader = DataLoader(
