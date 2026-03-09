@@ -1,0 +1,168 @@
+"""
+CLI entry point for BERT Active Learning experiments.
+
+This module provides the main command-line interface for running active learning
+experiments with configurable parameters. It handles argument parsing, config loading,
+experiment execution, and results visualization.
+"""
+
+from __future__ import annotations
+
+import argparse
+import logging
+import sys
+from pathlib import Path
+
+from bert_active.config.experiment import ExperimentConfig
+from bert_active.engine.active_loop import ActiveLearningLoop
+
+logger = logging.getLogger(__name__)
+
+
+def main() -> None:
+    """
+    Main CLI entry point for BERT active learning experiments.
+
+    Parses command-line arguments, loads configuration, applies overrides,
+    runs the active learning loop, and saves/visualizes results.
+    """
+    parser = argparse.ArgumentParser(
+        description="Run BERT-based active learning experiments",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="configs/default.yaml",
+        help="Path to YAML configuration file (default: configs/default.yaml)",
+    )
+    parser.add_argument(
+        "--strategy",
+        type=str,
+        default=None,
+        help="Override active learning strategy from config",
+    )
+    parser.add_argument(
+        "--n-rounds",
+        type=int,
+        default=None,
+        help="Override number of active learning rounds",
+    )
+    parser.add_argument(
+        "--n-query",
+        type=int,
+        default=None,
+        help="Override number of samples to query per round",
+    )
+    parser.add_argument(
+        "--n-init",
+        type=int,
+        default=None,
+        help="Override size of initial labeled set",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=None,
+        help="Override output directory for results",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Override random seed for reproducibility",
+    )
+
+    args = parser.parse_args()
+
+    # Load configuration from YAML
+    config_path = Path(args.config)
+    if not config_path.exists():
+        logger.error(f"Configuration file not found: {config_path}")
+        sys.exit(1)
+
+    logger.info(f"Loading configuration from {config_path}")
+    config = ExperimentConfig.from_yaml(str(config_path))
+
+    # Apply CLI overrides
+    if args.strategy is not None:
+        config.active_learning.strategy = args.strategy
+        logger.info(f"Overriding strategy: {args.strategy}")
+
+    if args.n_rounds is not None:
+        config.active_learning.n_rounds = args.n_rounds
+        logger.info(f"Overriding n_rounds: {args.n_rounds}")
+
+    if args.n_query is not None:
+        config.active_learning.n_query = args.n_query
+        logger.info(f"Overriding n_query: {args.n_query}")
+
+    if args.n_init is not None:
+        config.active_learning.n_init = args.n_init
+        logger.info(f"Overriding n_init: {args.n_init}")
+
+    if args.output_dir is not None:
+        config.output_dir = args.output_dir
+        logger.info(f"Overriding output_dir: {args.output_dir}")
+
+    if args.seed is not None:
+        config.data.seed = args.seed
+        logger.info(f"Overriding seed: {args.seed}")
+
+    # Print configuration summary
+    _print_config_summary(config)
+
+    # Run active learning loop
+    logger.info("Starting active learning experiment...")
+    loop = ActiveLearningLoop(config)
+    metrics = loop.run()
+
+    # Save and visualize results
+    output_path = Path(config.output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    logger.info(f"Saving metrics to {output_path}")
+    metrics.save(str(output_path))
+
+    logger.info("Plotting learning curves...")
+    metrics.plot_learning_curves(str(output_path))
+
+    # Print final summary
+    summary = metrics.get_summary()
+    logger.info("Active learning experiment completed successfully!")
+    logger.info(f"Results summary:\n{summary}")
+
+    print(f"\n{'=' * 60}")
+    print("EXPERIMENT COMPLETE")
+    print(f"{'=' * 60}")
+    print(f"Output directory: {output_path}")
+    print(f"Results summary:\n{summary}")
+
+
+def _print_config_summary(config: ExperimentConfig) -> None:
+    """
+    Print a summary of the experiment configuration.
+
+    Args:
+        config: The experiment configuration object.
+    """
+    print(f"\n{'=' * 60}")
+    print("EXPERIMENT CONFIGURATION")
+    print(f"{'=' * 60}")
+    print(f"Strategy: {config.active_learning.strategy}")
+    print(f"Number of Rounds: {config.active_learning.n_rounds}")
+    print(f"Samples per Query: {config.active_learning.n_query}")
+    print(f"Initial Labeled Set: {config.active_learning.n_init}")
+    print(f"Output Directory: {config.output_dir}")
+    print(f"Random Seed: {config.data.seed}")
+    print(f"{'=' * 60}\n")
+
+
+if __name__ == "__main__":
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+    main()
