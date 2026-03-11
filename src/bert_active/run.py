@@ -162,7 +162,7 @@ def main() -> None:
         metrics.plot_learning_curves(str(output_path))
 
         logger.info("Plotting label distribution...")
-        metrics.plot_label_distribution(str(output_path))
+        metrics.plot_label_distribution(str(output_path), num_classes=config.model.num_labels)
 
         summary = metrics.get_summary()
         logger.info("Active learning experiment completed successfully!")
