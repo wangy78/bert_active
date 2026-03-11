@@ -7,11 +7,13 @@ across active learning rounds and computing learning curve statistics.
 from __future__ import annotations
 
 import json
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy.typing import NDArray
 
 
 class MetricsTracker:
@@ -57,6 +59,29 @@ class MetricsTracker:
             **eval_metrics,
         }
         self.history.append(entry)
+
+    def log_sample_selection(
+        self,
+        round_num: int,
+        indices: NDArray[np.intp],
+        labels: NDArray[np.intp],
+    ) -> None:
+        """Record sample selection details and statistics.
+
+        Args:
+            round_num: Round number (1-indexed, matching the round these samples will be used in)
+            indices: Array of selected sample indices
+            labels: Array of corresponding labels
+        """
+        label_counts = dict(Counter(labels.tolist()))
+
+        entry = {
+            "round": round_num,
+            "indices": indices.tolist(),
+            "labels": labels.tolist(),
+            "label_counts": label_counts,
+        }
+        self.sample_selection_history.append(entry)
 
     def save(self, output_dir: str) -> None:
         """Save metrics history to JSON file.
