@@ -1,0 +1,35 @@
+experiment_name: test_label_dist
+output_dir: outputs/test_label_dist
+
+model:
+  name: google/bert_uncased_L-2_H-128_A-2
+  num_labels: 4
+  max_length: 128
+  attn_implementation: eager
+  torch_dtype: bfloat16
+
+data:
+  seed: 42
+  test_size: 1000
+
+trainer:
+  device: mps
+  learning_rate: 2.0e-5
+  weight_decay: 0.01
+  num_epochs: 2
+  batch_size: 32
+  warmup_ratio: 0.1
+
+active_learning:
+  strategy: random
+  n_rounds: 2
+  n_query: 20
+  n_init: 40
+  strategy_params: null
+
+wandb:
+  enabled: false
+  project: bert-active-learning
+  entity: null
+  tags: []
+  notes: null
