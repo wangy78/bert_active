@@ -161,6 +161,9 @@ def main() -> None:
         logger.info("Plotting learning curves...")
         metrics.plot_learning_curves(str(output_path))
 
+        logger.info("Plotting label distribution...")
+        metrics.plot_label_distribution(str(output_path))
+
         summary = metrics.get_summary()
         logger.info("Active learning experiment completed successfully!")
         logger.info(f"Results summary:\n{summary}")
