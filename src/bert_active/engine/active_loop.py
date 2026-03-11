@@ -158,6 +158,14 @@ class ActiveLearningLoop:
                 query_indices = self.strategy.query(
                     n=self.config.active_learning.n_query,
                 )
+                query_labels = self.pool.labels[query_indices]
                 self.pool.label(query_indices)
+
+                # Track sample selection for next round
+                self.metrics_tracker.log_sample_selection(
+                    round_num=round_num + 1,
+                    indices=query_indices,
+                    labels=query_labels,
+                )
 
         return self.metrics_tracker
