@@ -156,6 +156,78 @@ class MetricsTracker:
         plt.savefig(plot_file, dpi=100, bbox_inches="tight")
         plt.close()
 
+    def plot_label_distribution(self, output_dir: str, num_classes: int = 4) -> None:
+        """Generate label distribution visualizations.
+
+        Creates two subplots:
+        1. Stacked bar chart - shows per-round class distribution
+        2. Line plot - shows per-class trend across rounds
+
+        Args:
+            output_dir: Directory to save the plot
+            num_classes: Number of classes in the dataset (default: 4 for AG News)
+        """
+        if not self.sample_selection_history:
+            return
+
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+
+        # Extract data
+        rounds = [entry["round"] for entry in self.sample_selection_history]
+
+        # Build count matrix: rows=rounds, cols=classes
+        count_matrix = np.zeros((len(rounds), num_classes), dtype=int)
+        for i, entry in enumerate(self.sample_selection_history):
+            for label, count in entry["label_counts"].items():
+                count_matrix[i, label] = count
+
+        # Create figure with two subplots
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+        # Plot 1: Stacked bar chart
+        bottom = np.zeros(len(rounds))
+        colors = plt.cm.tab10(np.linspace(0, 0.4, num_classes))
+
+        for class_idx in range(num_classes):
+            ax1.bar(
+                rounds,
+                count_matrix[:, class_idx],
+                bottom=bottom,
+                label=f"Class {class_idx}",
+                color=colors[class_idx],
+            )
+            bottom += count_matrix[:, class_idx]
+
+        ax1.set_xlabel("Round")
+        ax1.set_ylabel("Number of Samples")
+        ax1.set_title("Sample Distribution per Round (Stacked)")
+        ax1.legend(loc="upper left")
+        ax1.grid(True, alpha=0.3, axis='y')
+
+        # Plot 2: Line plot
+        for class_idx in range(num_classes):
+            ax2.plot(
+                rounds,
+                count_matrix[:, class_idx],
+                marker="o",
+                label=f"Class {class_idx}",
+                color=colors[class_idx],
+                linewidth=2,
+            )
+
+        ax2.set_xlabel("Round")
+        ax2.set_ylabel("Number of Samples")
+        ax2.set_title("Sample Distribution Trend by Class")
+        ax2.legend(loc="upper left")
+        ax2.grid(True, alpha=0.3)
+
+        plt.tight_layout()
+
+        plot_file = output_path / f"{self.experiment_name}_label_distribution.png"
+        plt.savefig(plot_file, dpi=150, bbox_inches="tight")
+        plt.close()
+
     def get_summary(self) -> dict[str, Any]:
         """Get summary statistics of the experiment.
 

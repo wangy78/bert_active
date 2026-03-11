@@ -148,3 +148,57 @@ def test_save_backward_compatible_with_empty_selection():
         assert "sample_selection" in data
         assert len(data["metrics"]) == 1
         assert data["sample_selection"] == []
+
+
+def test_plot_label_distribution_creates_file():
+    """Test that plot_label_distribution creates PNG file."""
+    tracker = MetricsTracker(experiment_name="test_exp")
+
+    # Add sample selection for multiple rounds
+    tracker.log_sample_selection(
+        round_num=1,
+        indices=np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=np.intp),
+        labels=np.array([0, 0, 1, 1, 2, 2, 3, 3], dtype=np.intp),
+    )
+    tracker.log_sample_selection(
+        round_num=2,
+        indices=np.array([9, 10, 11, 12], dtype=np.intp),
+        labels=np.array([0, 1, 2, 3], dtype=np.intp),
+    )
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tracker.plot_label_distribution(tmpdir)
+
+        plot_path = Path(tmpdir) / "test_exp_label_distribution.png"
+        assert plot_path.exists()
+        assert plot_path.stat().st_size > 0
+
+
+def test_plot_label_distribution_with_empty_history():
+    """Test that plot_label_distribution handles empty history gracefully."""
+    tracker = MetricsTracker(experiment_name="test_exp")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Should not raise error
+        tracker.plot_label_distribution(tmpdir)
+
+        # Should not create file
+        plot_path = Path(tmpdir) / "test_exp_label_distribution.png"
+        assert not plot_path.exists()
+
+
+def test_plot_label_distribution_with_single_round():
+    """Test that plot_label_distribution works with single round."""
+    tracker = MetricsTracker(experiment_name="test_exp")
+
+    tracker.log_sample_selection(
+        round_num=1,
+        indices=np.array([1, 2, 3, 4], dtype=np.intp),
+        labels=np.array([0, 1, 2, 3], dtype=np.intp),
+    )
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tracker.plot_label_distribution(tmpdir)
+
+        plot_path = Path(tmpdir) / "test_exp_label_distribution.png"
+        assert plot_path.exists()
