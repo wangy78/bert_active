@@ -69,10 +69,20 @@ class MetricsTracker:
         """Record sample selection details and statistics.
 
         Args:
-            round_num: Round number (1-indexed, matching the round these samples will be used in)
+            round_num: Round number (0-indexed). Samples selected at round N are added to
+                       the training set and used for model evaluation at round N.
             indices: Array of selected sample indices
             labels: Array of corresponding labels
+
+        Raises:
+            ValueError: If indices and labels have different lengths
         """
+        if len(indices) != len(labels):
+            raise ValueError(
+                f"Length mismatch: indices has {len(indices)} elements "
+                f"but labels has {len(labels)} elements"
+            )
+
         label_counts = dict(Counter(labels.tolist()))
 
         entry = {

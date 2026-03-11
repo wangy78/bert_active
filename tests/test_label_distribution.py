@@ -77,3 +77,14 @@ def test_log_sample_selection_multiple_rounds():
     assert tracker.sample_selection_history[0]["round"] == 1
     assert tracker.sample_selection_history[1]["round"] == 2
     assert tracker.sample_selection_history[1]["label_counts"] == {1: 2, 2: 1, 3: 1}
+
+
+def test_log_sample_selection_validates_array_lengths():
+    """Test that mismatched array lengths raise ValueError."""
+    tracker = MetricsTracker(experiment_name="test")
+
+    indices = np.array([1, 2, 3], dtype=np.intp)
+    labels = np.array([0, 1], dtype=np.intp)
+
+    with pytest.raises(ValueError, match="Length mismatch"):
+        tracker.log_sample_selection(round_num=1, indices=indices, labels=labels)
