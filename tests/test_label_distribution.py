@@ -88,3 +88,63 @@ def test_log_sample_selection_validates_array_lengths():
 
     with pytest.raises(ValueError, match="Length mismatch"):
         tracker.log_sample_selection(round_num=1, indices=indices, labels=labels)
+
+
+def test_save_includes_sample_selection_history():
+    """Test that save() writes both metrics and sample_selection to JSON."""
+    tracker = MetricsTracker(experiment_name="test_exp")
+
+    # Log some metrics
+    tracker.log_round(
+        round_num=0,
+        n_labeled=40,
+        train_metrics={"train_loss": 0.5},
+        eval_metrics={"eval_accuracy": 0.85},
+    )
+
+    # Log sample selection
+    tracker.log_sample_selection(
+        round_num=1,
+        indices=np.array([1, 2, 3, 4], dtype=np.intp),
+        labels=np.array([0, 1, 2, 3], dtype=np.intp),
+    )
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tracker.save(tmpdir)
+
+        json_path = Path(tmpdir) / "test_exp_metrics.json"
+        assert json_path.exists()
+
+        with open(json_path) as f:
+            data = json.load(f)
+
+        assert "metrics" in data
+        assert "sample_selection" in data
+        assert len(data["metrics"]) == 1
+        assert len(data["sample_selection"]) == 1
+        assert data["metrics"][0]["round"] == 0
+        assert data["sample_selection"][0]["round"] == 1
+
+
+def test_save_backward_compatible_with_empty_selection():
+    """Test that save() works when sample_selection_history is empty."""
+    tracker = MetricsTracker(experiment_name="test_exp")
+
+    tracker.log_round(
+        round_num=0,
+        n_labeled=40,
+        train_metrics={"train_loss": 0.5},
+        eval_metrics={"eval_accuracy": 0.85},
+    )
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tracker.save(tmpdir)
+
+        json_path = Path(tmpdir) / "test_exp_metrics.json"
+        with open(json_path) as f:
+            data = json.load(f)
+
+        assert "metrics" in data
+        assert "sample_selection" in data
+        assert len(data["metrics"]) == 1
+        assert data["sample_selection"] == []

@@ -94,7 +94,7 @@ class MetricsTracker:
         self.sample_selection_history.append(entry)
 
     def save(self, output_dir: str) -> None:
-        """Save metrics history to JSON file.
+        """Save metrics history and sample selection to JSON file.
 
         Args:
             output_dir: Directory to save metrics JSON
@@ -102,9 +102,15 @@ class MetricsTracker:
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
 
+        # Combine both histories
+        data = {
+            "metrics": self.history,
+            "sample_selection": self.sample_selection_history,
+        }
+
         metrics_file = output_path / f"{self.experiment_name}_metrics.json"
         with open(metrics_file, "w") as f:
-            json.dump(self.history, f, indent=2)
+            json.dump(data, f, indent=2)
 
     def plot_learning_curves(self, output_dir: str) -> None:
         """Plot learning curves (accuracy and F1 vs n_labeled).
