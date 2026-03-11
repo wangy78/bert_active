@@ -20,6 +20,8 @@ class MetricsTracker:
     Attributes:
         experiment_name: Name of the experiment for file naming
         history: List of metric dictionaries, one per round
+        sample_selection_history: List of sample selection dictionaries, tracking
+            which samples (indices and labels) are selected each round
     """
 
     def __init__(self, experiment_name: str) -> None:
@@ -30,6 +32,7 @@ class MetricsTracker:
         """
         self.experiment_name = experiment_name
         self.history: list[dict[str, Any]] = []
+        self.sample_selection_history: list[dict[str, Any]] = []
 
     def log_round(
         self,
