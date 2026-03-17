@@ -11,7 +11,7 @@ from bert_active.data.dataset import TextClassificationDataset
 
 def create_tokenizer(model_name: str = "distilbert-base-uncased") -> PreTrainedTokenizerBase:
     """Create a DistilBERT tokenizer."""
-    tokenizer: PreTrainedTokenizerBase = AutoTokenizer.from_pretrained(model_name)
+    tokenizer: PreTrainedTokenizerBase = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
     return tokenizer
 
 
