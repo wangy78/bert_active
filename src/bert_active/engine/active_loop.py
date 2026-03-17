@@ -5,12 +5,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from bert_active.config.experiment import ExperimentConfig
-from bert_active.data.dataset import load_ag_news
-from bert_active.data.dna_dataset import load_epd_promoter, load_uci_promoter
+from bert_active.data.dna_dataset import load_dna_core_promoter, load_human_nontata_promoters
 from bert_active.data.tokenization import (
     build_dataset,
     create_tokenizer,
-    tokenize_test_dataset,
 )
 from bert_active.engine.trainer import Trainer
 from bert_active.evaluation.metrics import MetricsTracker
@@ -56,56 +54,31 @@ class ActiveLearningLoop:
 
         # Load dataset based on config
         dataset_name = config.data.dataset_name.lower()
-        if dataset_name == "ag_news":
-            self.pool, test_dataset = load_ag_news(
+        max_samples = getattr(config.data, "max_samples", None)
+
+        if dataset_name == "dna_core_promoter":
+            self.pool, test_dataset, test_texts = load_dna_core_promoter(
                 seed=config.data.seed,
-                test_size=config.data.test_size,
-            )
-            # Tokenize test dataset
-            self.test_dataset = tokenize_test_dataset(
-                tokenizer=self.tokenizer,
-                test_dataset=test_dataset,
-                max_length=config.model.max_length,
-            )
-        elif dataset_name == "dna_uci":
-            # k=None for DNABERT-2, k=6 for original DNABERT
-            use_kmer = "DNA_bert" in config.model.name and "DNABERT-2" not in config.model.name
-            self.pool, test_dataset, test_texts = load_uci_promoter(
-                seed=config.data.seed,
-                test_split=0.2,
-                k=6 if use_kmer else None,
-            )
-            # For DNA datasets, test_dataset has raw k-mer texts, need to tokenize
-            self.test_dataset = build_dataset(
-                tokenizer=self.tokenizer,
-                texts=test_texts,
-                labels=test_dataset.labels,
-                max_length=config.model.max_length,
-            )
-        elif dataset_name == "dna_epd":
-            # EPD dataset requires data_dir to be specified
-            data_dir = getattr(config.data, "data_dir", "./data/epd")
-            max_samples = getattr(config.data, "max_samples", None)
-            use_kmer = "DNA_bert" in config.model.name and "DNABERT-2" not in config.model.name
-            self.pool, test_dataset, test_texts = load_epd_promoter(
-                data_dir=data_dir,
-                seed=config.data.seed,
-                test_split=0.2,
-                k=6 if use_kmer else None,
                 max_samples=max_samples,
             )
-            # Tokenize DNA k-mer sequences
-            self.test_dataset = build_dataset(
-                tokenizer=self.tokenizer,
-                texts=test_texts,
-                labels=test_dataset.labels,
-                max_length=config.model.max_length,
+        elif dataset_name == "human_nontata_promoters":
+            self.pool, test_dataset, test_texts = load_human_nontata_promoters(
+                seed=config.data.seed,
+                max_samples=max_samples,
             )
         else:
             raise ValueError(
                 f"Unknown dataset: {dataset_name}. "
-                f"Supported datasets: ag_news, dna_uci, dna_epd"
+                f"Supported: dna_core_promoter, human_nontata_promoters"
             )
+
+        # Tokenize test set
+        self.test_dataset = build_dataset(
+            tokenizer=self.tokenizer,
+            texts=test_texts,
+            labels=test_dataset.labels,
+            max_length=config.model.max_length,
+        )
 
         # Create model
         model = create_model(

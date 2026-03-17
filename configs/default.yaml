@@ -8,10 +8,9 @@ model:
   max_length: 128
 
 data:
-  dataset_name: "dna_uci"  # Options: dna_uci, dna_epd
+  dataset_name: "dna_core_promoter"  # Options: dna_core_promoter, human_nontata_promoters
   seed: 42
-  # data_dir: "./data/epd"  # Uncomment for dna_epd
-  # max_samples: 10000      # Uncomment to limit EPD samples
+  # max_samples: 10000  # Uncomment to limit samples
 
 trainer:
   learning_rate: 2e-5
