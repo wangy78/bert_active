@@ -30,7 +30,7 @@ def create_model(
     model: PreTrainedModel = AutoModelForSequenceClassification.from_pretrained(
         model_name,
         num_labels=num_labels,
-        attn_implementation=attn_implementation,
+        # attn_implementation=attn_implementation,
         torch_dtype=dtype_map.get(torch_dtype, torch.float16),
     )
     return model
