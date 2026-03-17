@@ -45,7 +45,7 @@ def seq_to_kmer(seq: str, k: int = 6) -> str:
 def load_uci_promoter(
     seed: int = 42,
     test_split: float = 0.2,
-    k: int = 6,
+    k: int | None = None,  # None = no k-mer (for DNABERT-2), 6 = k-mer (for DNABERT-1)
 ) -> tuple[DataPool, TextClassificationDataset, list[str]]:
     """Load UCI Promoter Gene Sequences Dataset.
 
@@ -89,8 +89,12 @@ def load_uci_promoter(
     # Convert labels to numeric: + (promoter) -> 1, - (non-promoter) -> 0
     labels = np.array([1 if label == "+" else 0 for label in y.values], dtype=np.intp)
 
-    # Convert to k-mer format
-    sequences_kmer = [seq_to_kmer(seq, k=k) for seq in sequences]
+    # Convert to k-mer format (if k is specified)
+    if k is not None:
+        sequences_kmer = [seq_to_kmer(seq, k=k) for seq in sequences]
+    else:
+        # DNABERT-2: use raw sequences
+        sequences_kmer = sequences
 
     # Train/test split
     rng = np.random.default_rng(seed)
@@ -125,7 +129,7 @@ def load_epd_promoter(
     data_dir: str | Path,
     seed: int = 42,
     test_split: float = 0.2,
-    k: int = 6,
+    k: int | None = None,  # None = no k-mer (for DNABERT-2)
     max_samples: int | None = None,
 ) -> tuple[DataPool, TextClassificationDataset, list[str]]:
     """Load NCBI Eukaryotic Promoter Database (EPD).
@@ -167,8 +171,12 @@ def load_epd_promoter(
     sequences_raw = df["sequence"].tolist()
     labels = np.array(df["label"].values, dtype=np.intp)
 
-    # Convert to k-mer format
-    sequences_kmer = [seq_to_kmer(seq, k=k) for seq in sequences_raw]
+    # Convert to k-mer format (if k is specified)
+    if k is not None:
+        sequences_kmer = [seq_to_kmer(seq, k=k) for seq in sequences_raw]
+    else:
+        # DNABERT-2: use raw sequences
+        sequences_kmer = sequences_raw
 
     # Train/test split
     rng = np.random.default_rng(seed)

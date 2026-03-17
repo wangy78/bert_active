@@ -68,10 +68,12 @@ class ActiveLearningLoop:
                 max_length=config.model.max_length,
             )
         elif dataset_name == "dna_uci":
+            # k=None for DNABERT-2, k=6 for original DNABERT
+            use_kmer = "DNA_bert" in config.model.name and "DNABERT-2" not in config.model.name
             self.pool, test_dataset, test_texts = load_uci_promoter(
                 seed=config.data.seed,
                 test_split=0.2,
-                k=6,
+                k=6 if use_kmer else None,
             )
             # For DNA datasets, test_dataset has raw k-mer texts, need to tokenize
             self.test_dataset = build_dataset(
@@ -84,11 +86,12 @@ class ActiveLearningLoop:
             # EPD dataset requires data_dir to be specified
             data_dir = getattr(config.data, "data_dir", "./data/epd")
             max_samples = getattr(config.data, "max_samples", None)
+            use_kmer = "DNA_bert" in config.model.name and "DNABERT-2" not in config.model.name
             self.pool, test_dataset, test_texts = load_epd_promoter(
                 data_dir=data_dir,
                 seed=config.data.seed,
                 test_split=0.2,
-                k=6,
+                k=6 if use_kmer else None,
                 max_samples=max_samples,
             )
             # Tokenize DNA k-mer sequences
