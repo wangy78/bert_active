@@ -23,9 +23,9 @@ trainer:
   device: "cuda"
 
 active_learning:
-  n_init: 10
-  n_query: 5
-  n_rounds: 10
+  n_init: 100
+  n_query: 100
+  n_rounds: 20
   strategy: "bald"
   strategy_params:
     n_drop: 10  # MC Dropout passes for uncertainty estimation
