@@ -22,7 +22,9 @@ class ModelConfig:
 class DataConfig:
     dataset_name: str = "ag_news"
     seed: int = 42
-    test_size: int | None = None  # None = use full test set
+    test_size: int | None = None  # None = use full test set (AG News only)
+    data_dir: str | None = None  # Directory for EPD dataset
+    max_samples: int | None = None  # Max samples to load (EPD only)
 
 
 @dataclass

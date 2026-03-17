@@ -1,38 +1,41 @@
-experiment_name: "agnews_entropy"
+experiment_name: "dna_promoter_bald"
 
 model:
-  name: "distilbert-base-uncased"
-  num_labels: 4
+  name: "zhihan1996/DNABERT-2-117M"  # Official DNABERT-2 model
+  num_labels: 2
   attn_implementation: "flash_attention_2"
   torch_dtype: "bfloat16"
   max_length: 128
 
 data:
-  dataset_name: "ag_news"
+  dataset_name: "dna_uci"  # Options: dna_uci, dna_epd
   seed: 42
+  # data_dir: "./data/epd"  # Uncomment for dna_epd
+  # max_samples: 10000      # Uncomment to limit EPD samples
 
 trainer:
   learning_rate: 2e-5
   weight_decay: 0.01
-  batch_size: 128
-  eval_batch_size: 128
-  num_epochs: 3
+  batch_size: 16
+  eval_batch_size: 32
+  num_epochs: 5
   warmup_ratio: 0.1
   max_grad_norm: 1.0
   device: "cuda"
 
 active_learning:
-  n_init: 100
-  n_query: 100
-  n_rounds: 20
-  strategy: "entropy"
-  strategy_params: {}
+  n_init: 10
+  n_query: 5
+  n_rounds: 10
+  strategy: "bald"
+  strategy_params:
+    n_drop: 10  # MC Dropout passes for uncertainty estimation
 
 wandb:
   enabled: true
-  project: "bert-active"
-  entity: "codycjy"  # optional, defaults to your wandb default entity
-  tags: []
+  project: "bert-active-dna"
+  entity: "codycjy"
+  tags: ["dna", "promoter"]
   notes: ""
 
 output_dir: "outputs"

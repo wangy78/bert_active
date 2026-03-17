@@ -29,20 +29,23 @@ class LeastConfidenceStrategy(Strategy):
         model: ModelWrapper,
         tokenizer: PreTrainedTokenizerBase,
         max_length: int = 128,
+        n_drop: int = 10,
         **kwargs: Any,
     ) -> None:
         """Initialize strategy.
 
         Args:
             pool: Data pool with labeled and unlabeled instances
-            model: ModelWrapper with predict_proba method
+            model: ModelWrapper with predict_proba_dropout method
             tokenizer: Tokenizer for text encoding
             max_length: Max sequence length (default 128)
+            n_drop: Number of MC dropout passes for uncertainty estimation (default 10)
             **kwargs: Additional keyword arguments (unused).
         """
         super().__init__(pool, model, **kwargs)
         self.tokenizer = tokenizer
         self.max_length = max_length
+        self.n_drop = n_drop
 
     def query(self, n: int) -> NDArray[np.intp]:
         """Query n most uncertain instances using least confidence.
@@ -65,8 +68,8 @@ class LeastConfidenceStrategy(Strategy):
             max_length=self.max_length,
         )
 
-        # Get prediction probabilities
-        probs = self.model.predict_proba(dataset)  # shape: (n_unlabeled, n_classes)
+        # Get prediction probabilities using MC Dropout for proper uncertainty estimation
+        probs = self.model.predict_proba_dropout(dataset, n_drop=self.n_drop)  # shape: (n_unlabeled, n_classes)
 
         # Compute least confidence scores: 1.0 - max_prob (higher = more uncertain)
         scores = 1.0 - probs.max(axis=1)
@@ -89,20 +92,23 @@ class MarginStrategy(Strategy):
         model: ModelWrapper,
         tokenizer: PreTrainedTokenizerBase,
         max_length: int = 128,
+        n_drop: int = 10,
         **kwargs: Any,
     ) -> None:
         """Initialize strategy.
 
         Args:
             pool: Data pool with labeled and unlabeled instances
-            model: ModelWrapper with predict_proba method
+            model: ModelWrapper with predict_proba_dropout method
             tokenizer: Tokenizer for text encoding
             max_length: Max sequence length (default 128)
+            n_drop: Number of MC dropout passes for uncertainty estimation (default 10)
             **kwargs: Additional keyword arguments (unused).
         """
         super().__init__(pool, model, **kwargs)
         self.tokenizer = tokenizer
         self.max_length = max_length
+        self.n_drop = n_drop
 
     def query(self, n: int) -> NDArray[np.intp]:
         """Query n most uncertain instances using margin sampling.
@@ -125,8 +131,8 @@ class MarginStrategy(Strategy):
             max_length=self.max_length,
         )
 
-        # Get prediction probabilities
-        probs = self.model.predict_proba(dataset)  # shape: (n_unlabeled, n_classes)
+        # Get prediction probabilities using MC Dropout for proper uncertainty estimation
+        probs = self.model.predict_proba_dropout(dataset, n_drop=self.n_drop)  # shape: (n_unlabeled, n_classes)
 
         # Sort probabilities to get top two
         probs_sorted = np.sort(probs, axis=1)
@@ -153,20 +159,23 @@ class EntropyStrategy(Strategy):
         model: ModelWrapper,
         tokenizer: PreTrainedTokenizerBase,
         max_length: int = 128,
+        n_drop: int = 10,
         **kwargs: Any,
     ) -> None:
         """Initialize strategy.
 
         Args:
             pool: Data pool with labeled and unlabeled instances
-            model: ModelWrapper with predict_proba method
+            model: ModelWrapper with predict_proba_dropout method
             tokenizer: Tokenizer for text encoding
             max_length: Max sequence length (default 128)
+            n_drop: Number of MC dropout passes for uncertainty estimation (default 10)
             **kwargs: Additional keyword arguments (unused).
         """
         super().__init__(pool, model, **kwargs)
         self.tokenizer = tokenizer
         self.max_length = max_length
+        self.n_drop = n_drop
 
     def query(self, n: int) -> NDArray[np.intp]:
         """Query n most uncertain instances using entropy sampling.
@@ -189,8 +198,8 @@ class EntropyStrategy(Strategy):
             max_length=self.max_length,
         )
 
-        # Get prediction probabilities
-        probs = self.model.predict_proba(dataset)  # shape: (n_unlabeled, n_classes)
+        # Get prediction probabilities using MC Dropout for proper uncertainty estimation
+        probs = self.model.predict_proba_dropout(dataset, n_drop=self.n_drop)  # shape: (n_unlabeled, n_classes)
 
         # Compute entropy: -sum(p * log(p)) with numerical stability
         entropy = -np.sum(probs * np.log(probs + 1e-10), axis=1)
