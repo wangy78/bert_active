@@ -25,6 +25,7 @@ class DataConfig:
     test_size: int | None = None  # None = use full test set (AG News only)
     data_dir: str | None = None  # Directory for EPD dataset
     max_samples: int | None = None  # Max samples to load (EPD only)
+    target_species: str | None = None  # Target species for promoter transfer ("mm")
 
 
 @dataclass
@@ -58,11 +59,21 @@ class WandbConfig:
 
 
 @dataclass
+class PretrainConfig:
+    enabled: bool = False
+    source_species: str = "hs"
+    num_epochs: int = 10
+    learning_rate: float = 2e-5
+    batch_size: int = 16
+
+
+@dataclass
 class ExperimentConfig:
     model: ModelConfig = field(default_factory=ModelConfig)
     data: DataConfig = field(default_factory=DataConfig)
     trainer: TrainerConfig = field(default_factory=TrainerConfig)
     active_learning: ActiveLearningConfig = field(default_factory=ActiveLearningConfig)
+    pretrain: PretrainConfig = field(default_factory=PretrainConfig)
     wandb: WandbConfig = field(default_factory=WandbConfig)
     output_dir: str = "outputs"
     experiment_name: str = "default"
@@ -82,6 +93,8 @@ class ExperimentConfig:
             config.trainer = _merge_dataclass(TrainerConfig, raw["trainer"])
         if "active_learning" in raw:
             config.active_learning = _merge_dataclass(ActiveLearningConfig, raw["active_learning"])
+        if "pretrain" in raw:
+            config.pretrain = _merge_dataclass(PretrainConfig, raw["pretrain"])
         if "wandb" in raw:
             config.wandb = _merge_dataclass(WandbConfig, raw["wandb"])
         if "output_dir" in raw:

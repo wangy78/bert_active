@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bert_active.config.experiment import ExperimentConfig
+from bert_active.config.experiment import ExperimentConfig, TrainerConfig
 from bert_active.data.dna_dataset import load_dna_core_promoter, load_human_nontata_promoters
+from bert_active.data.promoter_dataset import load_promoter_species, load_transfer_data
 from bert_active.data.tokenization import (
     build_dataset,
     create_tokenizer,
@@ -56,7 +57,33 @@ class ActiveLearningLoop:
         dataset_name = config.data.dataset_name.lower()
         max_samples = getattr(config.data, "max_samples", None)
 
-        if dataset_name == "dna_core_promoter":
+        # For transfer learning: store source data (None if not applicable)
+        self.source_texts: list[str] | None = None
+        self.source_labels = None
+
+        if dataset_name == "promoter":
+            target_species = config.data.target_species or "mm"
+            data_dir = config.data.data_dir or "."
+            if config.pretrain.enabled:
+                (
+                    self.source_texts,
+                    self.source_labels,
+                    self.pool,
+                    test_dataset,
+                    test_texts,
+                ) = load_transfer_data(
+                    source_species=config.pretrain.source_species,
+                    target_species=target_species,
+                    data_dir=data_dir,
+                    seed=config.data.seed,
+                )
+            else:
+                self.pool, test_dataset, test_texts = load_promoter_species(
+                    species=target_species,
+                    data_dir=data_dir,
+                    seed=config.data.seed,
+                )
+        elif dataset_name == "dna_core_promoter":
             self.pool, test_dataset, test_texts = load_dna_core_promoter(
                 seed=config.data.seed,
                 max_samples=max_samples,
@@ -69,7 +96,7 @@ class ActiveLearningLoop:
         else:
             raise ValueError(
                 f"Unknown dataset: {dataset_name}. "
-                f"Supported: dna_core_promoter, human_nontata_promoters"
+                f"Supported: promoter, dna_core_promoter, human_nontata_promoters"
             )
 
         # Tokenize test set
@@ -125,6 +152,33 @@ class ActiveLearningLoop:
         Returns:
             MetricsTracker containing all metrics from the experiment.
         """
+        # Source domain pretraining (transfer learning)
+        if self.config.pretrain.enabled and self.source_texts is not None:
+            print("=== Source domain pretraining ===")
+            source_dataset = build_dataset(
+                tokenizer=self.tokenizer,
+                texts=self.source_texts,
+                labels=self.source_labels,
+                max_length=self.config.model.max_length,
+            )
+            pretrain_config = TrainerConfig(
+                learning_rate=self.config.pretrain.learning_rate,
+                batch_size=self.config.pretrain.batch_size,
+                num_epochs=self.config.pretrain.num_epochs,
+                weight_decay=self.config.trainer.weight_decay,
+                warmup_ratio=self.config.trainer.warmup_ratio,
+                max_grad_norm=self.config.trainer.max_grad_norm,
+                eval_batch_size=self.config.trainer.eval_batch_size,
+                device=self.config.trainer.device,
+            )
+            pretrain_trainer = Trainer(
+                model=self.model_wrapper,
+                config=pretrain_config,
+                wandb_run=self.wandb_run,
+            )
+            pretrain_trainer.train(source_dataset)
+            print("=== Source domain pretraining complete ===")
+
         self.pool.initialize(
             n_init=self.config.active_learning.n_init,
             seed=self.config.data.seed,

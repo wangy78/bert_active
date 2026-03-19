@@ -1,16 +1,23 @@
-experiment_name: "dna_promoter_bald"
+experiment_name: "transfer_hs2mm_bald"
 
 model:
-  name: "zhihan1996/DNABERT-2-117M"  # Official DNABERT-2 model
+  name: "zhihan1996/DNABERT-2-117M"
   num_labels: 2
   attn_implementation: "flash_attention_2"
   torch_dtype: "float32"
   max_length: 128
 
 data:
-  dataset_name: "dna_core_promoter"  # Options: dna_core_promoter, human_nontata_promoters
+  dataset_name: "promoter"
+  target_species: "mm"
   seed: 42
-  # max_samples: 10000  # Uncomment to limit samples
+
+pretrain:
+  enabled: true
+  source_species: "hs"
+  num_epochs: 10
+  learning_rate: 2e-5
+  batch_size: 16
 
 trainer:
   learning_rate: 2e-5
@@ -28,13 +35,13 @@ active_learning:
   n_rounds: 20
   strategy: "bald"
   strategy_params:
-    n_drop: 10  # MC Dropout passes for uncertainty estimation
+    n_drop: 10
 
 wandb:
   enabled: true
   project: "bert-active-dna"
   entity: "codycjy"
-  tags: ["dna", "promoter"]
-  notes: ""
+  tags: ["promoter", "transfer", "hs2mm", "bald"]
+  notes: "Transfer: Human pretrain -> Mouse BALD active learning"
 
 output_dir: "outputs"
