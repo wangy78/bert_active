@@ -124,9 +124,10 @@ def main() -> None:
         config.data.seed = args.seed
         logger.info(f"Overriding seed: {args.seed}")
 
-    # Update experiment name to reflect strategy and n_rounds if overridden
-    if args.strategy is not None or args.n_rounds is not None:
-        config.experiment_name = f"agnews_{config.active_learning.strategy}_r{config.active_learning.n_rounds}"
+    # Update experiment name to reflect CLI overrides
+    if args.strategy is not None or args.n_rounds is not None or args.n_query is not None:
+        al = config.active_learning
+        config.experiment_name = f"{config.experiment_name}_q{al.n_query}_r{al.n_rounds}"
         logger.info(f"Updated experiment_name: {config.experiment_name}")
 
     if args.wandb:

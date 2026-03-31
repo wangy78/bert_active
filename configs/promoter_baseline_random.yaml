@@ -1,0 +1,42 @@
+experiment_name: "baseline_mouse_random"
+
+model:
+  name: "zhihan1996/DNABERT-2-117M"
+  num_labels: 2
+  attn_implementation: "flash_attention_2"
+  torch_dtype: "float32"
+  max_length: 128
+
+data:
+  dataset_name: "promoter"
+  target_species: "mm"
+  seed: 42
+
+pretrain:
+  enabled: false
+
+trainer:
+  learning_rate: 2e-5
+  weight_decay: 0.01
+  batch_size: 16
+  eval_batch_size: 32
+  num_epochs: 5
+  warmup_ratio: 0.1
+  max_grad_norm: 1.0
+  device: "cuda"
+
+active_learning:
+  n_init: 100
+  n_query: 100
+  n_rounds: 20
+  strategy: "random"
+  strategy_params: {}
+
+wandb:
+  enabled: true
+  project: "bert-active-dna"
+  entity: "codycjy"
+  tags: ["promoter", "baseline", "mouse", "random"]
+  notes: "Baseline: Mouse random sampling active learning from scratch"
+
+output_dir: "outputs"
