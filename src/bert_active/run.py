@@ -76,6 +76,13 @@ def main() -> None:
         help="Override random seed for reproducibility",
     )
     parser.add_argument(
+        "--seeds",
+        type=int,
+        nargs="+",
+        default=None,
+        help="Run experiment with multiple seeds, e.g. --seeds 42 43 44",
+    )
+    parser.add_argument(
         "--wandb",
         action="store_true",
         default=None,
@@ -96,47 +103,67 @@ def main() -> None:
         logger.error(f"Configuration file not found: {config_path}")
         sys.exit(1)
 
-    logger.info(f"Loading configuration from {config_path}")
-    config = ExperimentConfig.from_yaml(str(config_path))
+    # Determine seeds to run
+    if args.seeds is not None:
+        seeds = args.seeds
+    elif args.seed is not None:
+        seeds = [args.seed]
+    else:
+        seeds = [None]  # use seed from config
 
-    # Apply CLI overrides
-    if args.strategy is not None:
-        config.active_learning.strategy = args.strategy
-        logger.info(f"Overriding strategy: {args.strategy}")
+    logger.info(f"Running with seeds: {seeds}")
 
-    if args.n_rounds is not None:
-        config.active_learning.n_rounds = args.n_rounds
-        logger.info(f"Overriding n_rounds: {args.n_rounds}")
+    for seed in seeds:
+        logger.info(f"Loading configuration from {config_path}")
+        config = ExperimentConfig.from_yaml(str(config_path))
 
-    if args.n_query is not None:
-        config.active_learning.n_query = args.n_query
-        logger.info(f"Overriding n_query: {args.n_query}")
+        # Apply CLI overrides
+        if args.strategy is not None:
+            config.active_learning.strategy = args.strategy
+            logger.info(f"Overriding strategy: {args.strategy}")
 
-    if args.n_init is not None:
-        config.active_learning.n_init = args.n_init
-        logger.info(f"Overriding n_init: {args.n_init}")
+        if args.n_rounds is not None:
+            config.active_learning.n_rounds = args.n_rounds
+            logger.info(f"Overriding n_rounds: {args.n_rounds}")
 
-    if args.output_dir is not None:
-        config.output_dir = args.output_dir
-        logger.info(f"Overriding output_dir: {args.output_dir}")
+        if args.n_query is not None:
+            config.active_learning.n_query = args.n_query
+            logger.info(f"Overriding n_query: {args.n_query}")
 
-    if args.seed is not None:
-        config.data.seed = args.seed
-        logger.info(f"Overriding seed: {args.seed}")
+        if args.n_init is not None:
+            config.active_learning.n_init = args.n_init
+            logger.info(f"Overriding n_init: {args.n_init}")
 
-    # Update experiment name to reflect CLI overrides
-    if args.strategy is not None or args.n_rounds is not None or args.n_query is not None:
-        al = config.active_learning
-        config.experiment_name = f"{config.experiment_name}_q{al.n_query}_r{al.n_rounds}"
-        logger.info(f"Updated experiment_name: {config.experiment_name}")
+        if args.output_dir is not None:
+            config.output_dir = args.output_dir
+            logger.info(f"Overriding output_dir: {args.output_dir}")
 
-    if args.wandb:
-        config.wandb.enabled = True
-    elif args.no_wandb:
-        config.wandb.enabled = False
+        if seed is not None:
+            config.data.seed = seed
+            logger.info(f"Overriding seed: {seed}")
 
-    _print_config_summary(config)
+        # Update experiment name to reflect CLI overrides
+        if args.strategy is not None or args.n_rounds is not None or args.n_query is not None:
+            al = config.active_learning
+            config.experiment_name = f"{config.experiment_name}_q{al.n_query}_r{al.n_rounds}"
+            logger.info(f"Updated experiment_name: {config.experiment_name}")
 
+        # Append seed to experiment name when running multiple seeds
+        if len(seeds) > 1 or args.seeds is not None:
+            config.experiment_name = f"{config.experiment_name}_seed{config.data.seed}"
+            if config.wandb.tags is not None and f"seed{config.data.seed}" not in config.wandb.tags:
+                config.wandb.tags = list(config.wandb.tags) + [f"seed{config.data.seed}"]
+
+        if args.wandb:
+            config.wandb.enabled = True
+        elif args.no_wandb:
+            config.wandb.enabled = False
+
+        _print_config_summary(config)
+        _run_single(config)
+
+
+def _run_single(config: ExperimentConfig) -> None:
     wandb_run: wandb.Run | None = None
     if config.wandb.enabled:
         wandb_run = wandb.init(
