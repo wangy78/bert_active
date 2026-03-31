@@ -238,4 +238,14 @@ class ActiveLearningLoop:
                     labels=query_labels,
                 )
 
+                if self.wandb_run is not None:
+                    from collections import Counter
+                    label_counts = Counter(query_labels.tolist())
+                    self.wandb_run.log(
+                        {
+                            "al/round": round_num + 1,
+                            **{f"al/query_label_{k}": v for k, v in label_counts.items()},
+                        }
+                    )
+
         return self.metrics_tracker
