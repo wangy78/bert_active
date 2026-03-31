@@ -148,8 +148,8 @@ def main() -> None:
             config.experiment_name = f"{config.experiment_name}_q{al.n_query}_r{al.n_rounds}"
             logger.info(f"Updated experiment_name: {config.experiment_name}")
 
-        # Append seed to experiment name when running multiple seeds
-        if len(seeds) > 1 or args.seeds is not None:
+        # Append seed to experiment name and tags when seed is explicitly set via CLI
+        if args.seeds is not None or args.seed is not None:
             config.experiment_name = f"{config.experiment_name}_seed{config.data.seed}"
             if config.wandb.tags is not None and f"seed{config.data.seed}" not in config.wandb.tags:
                 config.wandb.tags = list(config.wandb.tags) + [f"seed{config.data.seed}"]

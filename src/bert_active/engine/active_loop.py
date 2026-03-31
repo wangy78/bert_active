@@ -205,25 +205,8 @@ class ActiveLearningLoop:
                 eval_metrics=eval_metrics,
             )
 
-            if self.wandb_run is not None:
-                self.wandb_run.log(
-                    {
-                        "al/round": round_num,
-                        "al/n_labeled": n_labeled,
-                        "al/train_loss": train_metrics["train_loss"],
-                        "al/eval_loss": eval_metrics["eval_loss"],
-                        "al/eval_accuracy": eval_metrics["eval_accuracy"],
-                        "al/eval_f1_macro": eval_metrics["eval_f1_macro"],
-                    },
-                )
-
-            print(
-                f"Round {round_num}: "
-                f"n_labeled={n_labeled}, "
-                f"eval_accuracy={eval_metrics['eval_accuracy']:.4f}, "
-                f"eval_f1={eval_metrics['eval_f1_macro']:.4f}"
-            )
-
+            query_indices = None
+            query_label_counts = {}
             if round_num < self.config.active_learning.n_rounds - 1:
                 query_indices = self.strategy.query(
                     n=self.config.active_learning.n_query,
@@ -238,14 +221,27 @@ class ActiveLearningLoop:
                     labels=query_labels,
                 )
 
-                if self.wandb_run is not None:
-                    from collections import Counter
-                    label_counts = Counter(query_labels.tolist())
-                    self.wandb_run.log(
-                        {
-                            "al/round": round_num + 1,
-                            **{f"al/query_label_{k}": v for k, v in label_counts.items()},
-                        }
-                    )
+                from collections import Counter
+                query_label_counts = Counter(query_labels.tolist())
+
+            if self.wandb_run is not None:
+                self.wandb_run.log(
+                    {
+                        "al/round": round_num,
+                        "al/n_labeled": n_labeled,
+                        "al/train_loss": train_metrics["train_loss"],
+                        "al/eval_loss": eval_metrics["eval_loss"],
+                        "al/eval_accuracy": eval_metrics["eval_accuracy"],
+                        "al/eval_f1_macro": eval_metrics["eval_f1_macro"],
+                        **{f"al/query_label_{k}": v for k, v in query_label_counts.items()},
+                    },
+                )
+
+            print(
+                f"Round {round_num}: "
+                f"n_labeled={n_labeled}, "
+                f"eval_accuracy={eval_metrics['eval_accuracy']:.4f}, "
+                f"eval_f1={eval_metrics['eval_f1_macro']:.4f}"
+            )
 
         return self.metrics_tracker
