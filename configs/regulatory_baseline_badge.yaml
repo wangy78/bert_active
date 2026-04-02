@@ -1,0 +1,40 @@
+experiment_name: "regulatory_badge"
+
+model:
+  name: "zhihan1996/DNABERT-2-117M"
+  num_labels: 3
+  attn_implementation: "flash_attention_2"
+  torch_dtype: "float32"
+  max_length: 128
+
+data:
+  dataset_name: "gue_human_ensembl_regulatory"
+  seed: 42
+
+pretrain:
+  enabled: false
+
+trainer:
+  learning_rate: 2e-5
+  weight_decay: 0.01
+  batch_size: 16
+  eval_batch_size: 32
+  num_epochs: 5
+  warmup_ratio: 0.1
+  max_grad_norm: 1.0
+  device: "cuda"
+
+active_learning:
+  n_init: 100
+  n_query: 100
+  n_rounds: 20
+  strategy: "badge"
+
+wandb:
+  enabled: true
+  project: "bert-active-dna"
+  entity: "codycjy"
+  tags: ["regulatory", "baseline", "badge", "3class"]
+  notes: "Baseline: Human Ensembl Regulatory 3-class badge"
+
+output_dir: "outputs"
