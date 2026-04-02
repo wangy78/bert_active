@@ -1,4 +1,4 @@
-experiment_name: "baseline_mouse_doptimal"
+experiment_name: "mouse_doptimal_init_random"
 
 model:
   name: "zhihan1996/DNABERT-2-117M"
@@ -29,14 +29,14 @@ active_learning:
   n_init: 100
   n_query: 100
   n_rounds: 20
-  strategy: "doptimal"
+  strategy: "random"
   init_strategy: "doptimal"
 
 wandb:
   enabled: true
   project: "bert-active-dna"
   entity: "codycjy"
-  tags: ["promoter", "baseline", "mouse", "doptimal", "doptimal-init"]
-  notes: "D-Optimal init + D-Optimal query: mouse promoter binary classification"
+  tags: ["promoter", "mouse", "doptimal-init", "random", "cold-start"]
+  notes: "D-Optimal cold start + random queries. Isolates init effect. Mouse promoter."
 
 output_dir: "outputs"

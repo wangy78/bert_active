@@ -148,6 +148,10 @@ def main() -> None:
             config.experiment_name = f"{config.experiment_name}_q{al.n_query}_r{al.n_rounds}"
             logger.info(f"Updated experiment_name: {config.experiment_name}")
 
+        if args.n_init is not None:
+            config.experiment_name = f"{config.experiment_name}_init{config.active_learning.n_init}"
+            logger.info(f"Updated experiment_name: {config.experiment_name}")
+
         # Append seed to experiment name and tags when seed is explicitly set via CLI
         if args.seeds is not None or args.seed is not None:
             config.experiment_name = f"{config.experiment_name}_seed{config.data.seed}"

@@ -1,15 +1,14 @@
-experiment_name: "baseline_mouse_doptimal"
+experiment_name: "fungi_doptimal_init_badge"
 
 model:
   name: "zhihan1996/DNABERT-2-117M"
-  num_labels: 2
+  num_labels: 20
   attn_implementation: "flash_attention_2"
   torch_dtype: "float32"
   max_length: 128
 
 data:
-  dataset_name: "promoter"
-  target_species: "mm"
+  dataset_name: "gue_fungi_species"
   seed: 42
 
 pretrain:
@@ -29,14 +28,14 @@ active_learning:
   n_init: 100
   n_query: 100
   n_rounds: 20
-  strategy: "doptimal"
-  init_strategy: "doptimal"
+  strategy: "badge"
+  init_strategy: "doptimal"   # D-Optimal cold start, then BADGE queries
 
 wandb:
   enabled: true
   project: "bert-active-dna"
   entity: "codycjy"
-  tags: ["promoter", "baseline", "mouse", "doptimal", "doptimal-init"]
-  notes: "D-Optimal init + D-Optimal query: mouse promoter binary classification"
+  tags: ["fungi", "doptimal-init", "badge", "20class", "cold-start"]
+  notes: "D-Optimal cold start (n_init=100) + BADGE active learning. Fungi 20-class."
 
 output_dir: "outputs"

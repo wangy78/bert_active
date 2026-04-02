@@ -46,6 +46,7 @@ class ActiveLearningConfig:
     n_query: int = 100
     n_rounds: int = 20
     strategy: str = "entropy"
+    init_strategy: str = "random"   # "random" or "doptimal"
     strategy_params: dict[str, Any] = field(default_factory=dict)
 
 

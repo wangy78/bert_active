@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import numpy as np
+
 from bert_active.config.experiment import ExperimentConfig, TrainerConfig
 from bert_active.data.dna_dataset import (
     load_dna_core_promoter,
@@ -205,10 +207,13 @@ class ActiveLearningLoop:
             pretrain_trainer.train(source_dataset)
             print("=== Source domain pretraining complete ===")
 
-        self.pool.initialize(
-            n_init=self.config.active_learning.n_init,
-            seed=self.config.data.seed,
-        )
+        if self.config.active_learning.init_strategy == "doptimal":
+            self._initialize_doptimal(self.config.active_learning.n_init)
+        else:
+            self.pool.initialize(
+                n_init=self.config.active_learning.n_init,
+                seed=self.config.data.seed,
+            )
 
         for round_num in range(self.config.active_learning.n_rounds):
             train_dataset = build_dataset(
@@ -269,3 +274,50 @@ class ActiveLearningLoop:
             )
 
         return self.metrics_tracker
+
+    def _initialize_doptimal(self, n_init: int) -> None:
+        """Select initial labeled set using D-Optimal design on pretrained embeddings.
+
+        Uses the pretrained (untrained) model embeddings to greedily maximise
+        det(X^T X) for the initial pool, giving a more informative cold start
+        than random balanced sampling.
+        """
+        from bert_active.data.tokenization import build_dataset
+        from bert_active.strategies.doptimal import DOptimalStrategy
+
+        print(f"=== D-Optimal cold-start initialisation (n_init={n_init}) ===")
+
+        all_texts = self.pool.texts
+        dataset = build_dataset(
+            self.tokenizer,
+            all_texts,
+            labels=None,
+            max_length=self.config.model.max_length,
+        )
+        embeddings = self.model_wrapper.get_embeddings(dataset).astype(float)
+
+        d = embeddings.shape[1]
+        ridge = 1e-4
+        XtX_inv = (1.0 / ridge) * np.eye(d)
+
+        all_indices = np.arange(len(all_texts), dtype=np.intp)
+        remaining = all_indices.copy()
+        selected: list[int] = []
+
+        for _ in range(min(n_init, len(all_texts))):
+            U = embeddings[remaining]
+            scores = np.einsum("md,dd,md->m", U, XtX_inv, U)
+            best_local = int(np.argmax(scores))
+            best_idx = int(remaining[best_local])
+            selected.append(best_idx)
+
+            x = embeddings[best_idx]
+            Ainv_x = XtX_inv @ x
+            denom = 1.0 + float(x @ Ainv_x)
+            XtX_inv -= np.outer(Ainv_x, Ainv_x) / denom
+
+            remaining = np.delete(remaining, best_local)
+
+        init_indices = np.array(selected, dtype=np.intp)
+        self.pool.label(init_indices)
+        print(f"=== D-Optimal init complete: {len(init_indices)} samples labeled ===")
