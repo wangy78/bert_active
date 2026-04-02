@@ -5,7 +5,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from bert_active.config.experiment import ExperimentConfig, TrainerConfig
-from bert_active.data.dna_dataset import load_dna_core_promoter, load_human_nontata_promoters
+from bert_active.data.dna_dataset import (
+    load_dna_core_promoter,
+    load_gue_fungi_species,
+    load_gue_human_ensembl_regulatory,
+    load_gue_virus_species,
+    load_human_nontata_promoters,
+)
 from bert_active.data.promoter_dataset import load_promoter_species, load_transfer_data
 from bert_active.data.tokenization import (
     build_dataset,
@@ -95,10 +101,26 @@ class ActiveLearningLoop:
                 seed=config.data.seed,
                 max_samples=max_samples,
             )
+        elif dataset_name == "gue_fungi_species":
+            self.pool, test_dataset, test_texts = load_gue_fungi_species(
+                seed=config.data.seed,
+                max_samples=max_samples,
+            )
+        elif dataset_name == "gue_virus_species":
+            self.pool, test_dataset, test_texts = load_gue_virus_species(
+                seed=config.data.seed,
+                max_samples=max_samples,
+            )
+        elif dataset_name == "gue_human_ensembl_regulatory":
+            self.pool, test_dataset, test_texts = load_gue_human_ensembl_regulatory(
+                seed=config.data.seed,
+                max_samples=max_samples,
+            )
         else:
             raise ValueError(
                 f"Unknown dataset: {dataset_name}. "
-                f"Supported: promoter, dna_core_promoter, human_nontata_promoters"
+                f"Supported: promoter, dna_core_promoter, human_nontata_promoters, "
+                f"gue_fungi_species, gue_virus_species, gue_human_ensembl_regulatory"
             )
 
         # Tokenize test set

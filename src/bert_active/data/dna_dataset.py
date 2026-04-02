@@ -3,6 +3,9 @@
 Supports:
 - dnagpt/dna_core_promoter (59k samples, 70bp sequences)
 - katarinagresova/Genomic_Benchmarks_human_nontata_promoters (36k samples, 251bp sequences)
+- leannmlindsey/GUE fungi_species_20 (10k samples, 20-class fungal species classification)
+- leannmlindsey/GUE virus_species_40 (5k samples, 40-class viral species classification)
+- leannmlindsey/GUE human_ensembl_regulatory (289k samples, 3-class regulatory region classification)
 """
 
 from __future__ import annotations
@@ -79,6 +82,132 @@ def load_human_nontata_promoters(
 
     # Test split
     test_texts: list[str] = list(ds["test"]["seq"])
+    test_labels = np.array(ds["test"]["label"], dtype=np.intp)
+
+    test_dataset = TextClassificationDataset(
+        input_ids=np.zeros((len(test_texts), 1), dtype=np.intp),
+        attention_mask=np.zeros((len(test_texts), 1), dtype=np.intp),
+        labels=test_labels,
+    )
+    test_dataset._raw_texts = test_texts  # type: ignore[attr-defined]
+
+    return pool, test_dataset, test_texts
+
+
+def load_gue_fungi_species(
+    seed: int = 42,
+    max_samples: int | None = None,
+) -> tuple[DataPool, TextClassificationDataset, list[str]]:
+    """Load GUE fungi_species_20 dataset.
+
+    20-class fungal species classification. ~10,000 samples, ~500bp sequences.
+    Has train/test splits.
+
+    Args:
+        seed: Random seed (used if max_samples is set).
+        max_samples: Limit training samples (optional).
+
+    Returns:
+        (DataPool, test_dataset_placeholder, test_texts)
+    """
+    ds: DatasetDict = load_dataset("leannmlindsey/GUE", "fungi_species_20")  # type: ignore[assignment]
+
+    train_texts: list[str] = list(ds["train"]["sequence"])
+    train_labels = np.array(ds["train"]["label"], dtype=np.intp)
+
+    if max_samples is not None:
+        rng = np.random.default_rng(seed)
+        idx = rng.choice(len(train_texts), size=min(max_samples, len(train_texts)), replace=False)
+        train_texts = [train_texts[i] for i in idx]
+        train_labels = train_labels[idx]
+
+    pool = DataPool(texts=train_texts, labels=train_labels)
+
+    test_texts: list[str] = list(ds["test"]["sequence"])
+    test_labels = np.array(ds["test"]["label"], dtype=np.intp)
+
+    test_dataset = TextClassificationDataset(
+        input_ids=np.zeros((len(test_texts), 1), dtype=np.intp),
+        attention_mask=np.zeros((len(test_texts), 1), dtype=np.intp),
+        labels=test_labels,
+    )
+    test_dataset._raw_texts = test_texts  # type: ignore[attr-defined]
+
+    return pool, test_dataset, test_texts
+
+
+def load_gue_virus_species(
+    seed: int = 42,
+    max_samples: int | None = None,
+) -> tuple[DataPool, TextClassificationDataset, list[str]]:
+    """Load GUE virus_species_40 dataset.
+
+    40-class viral species classification. ~5,000 samples.
+    Has train/test splits.
+
+    Args:
+        seed: Random seed (used if max_samples is set).
+        max_samples: Limit training samples (optional).
+
+    Returns:
+        (DataPool, test_dataset_placeholder, test_texts)
+    """
+    ds: DatasetDict = load_dataset("leannmlindsey/GUE", "virus_species_40")  # type: ignore[assignment]
+
+    train_texts: list[str] = list(ds["train"]["sequence"])
+    train_labels = np.array(ds["train"]["label"], dtype=np.intp)
+
+    if max_samples is not None:
+        rng = np.random.default_rng(seed)
+        idx = rng.choice(len(train_texts), size=min(max_samples, len(train_texts)), replace=False)
+        train_texts = [train_texts[i] for i in idx]
+        train_labels = train_labels[idx]
+
+    pool = DataPool(texts=train_texts, labels=train_labels)
+
+    test_texts: list[str] = list(ds["test"]["sequence"])
+    test_labels = np.array(ds["test"]["label"], dtype=np.intp)
+
+    test_dataset = TextClassificationDataset(
+        input_ids=np.zeros((len(test_texts), 1), dtype=np.intp),
+        attention_mask=np.zeros((len(test_texts), 1), dtype=np.intp),
+        labels=test_labels,
+    )
+    test_dataset._raw_texts = test_texts  # type: ignore[attr-defined]
+
+    return pool, test_dataset, test_texts
+
+
+def load_gue_human_ensembl_regulatory(
+    seed: int = 42,
+    max_samples: int | None = None,
+) -> tuple[DataPool, TextClassificationDataset, list[str]]:
+    """Load GUE human_ensembl_regulatory dataset.
+
+    3-class regulatory region classification: Enhancer / Promoter / Open Chromatin.
+    ~289,000 samples, ~401bp sequences. Has train/test splits.
+
+    Args:
+        seed: Random seed (used if max_samples is set).
+        max_samples: Limit training samples (optional).
+
+    Returns:
+        (DataPool, test_dataset_placeholder, test_texts)
+    """
+    ds: DatasetDict = load_dataset("leannmlindsey/GUE", "human_ensembl_regulatory")  # type: ignore[assignment]
+
+    train_texts: list[str] = list(ds["train"]["sequence"])
+    train_labels = np.array(ds["train"]["label"], dtype=np.intp)
+
+    if max_samples is not None:
+        rng = np.random.default_rng(seed)
+        idx = rng.choice(len(train_texts), size=min(max_samples, len(train_texts)), replace=False)
+        train_texts = [train_texts[i] for i in idx]
+        train_labels = train_labels[idx]
+
+    pool = DataPool(texts=train_texts, labels=train_labels)
+
+    test_texts: list[str] = list(ds["test"]["sequence"])
     test_labels = np.array(ds["test"]["label"], dtype=np.intp)
 
     test_dataset = TextClassificationDataset(
