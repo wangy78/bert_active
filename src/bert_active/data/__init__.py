@@ -4,7 +4,7 @@ from bert_active.data.dataset import DataPool, TextClassificationDataset, load_a
 from bert_active.data.dna_dataset import (
     load_dna_core_promoter,
     load_gue_fungi_species,
-    load_gue_human_ensembl_regulatory,
+    load_gue_virus_covid,
     load_gue_virus_species,
     load_human_nontata_promoters,
 )
@@ -27,7 +27,7 @@ __all__ = [
     "load_ag_news",
     "load_dna_core_promoter",
     "load_gue_fungi_species",
-    "load_gue_human_ensembl_regulatory",
+    "load_gue_virus_covid",
     "load_gue_virus_species",
     "load_human_nontata_promoters",
     "load_promoter_species",
