@@ -5,7 +5,6 @@ Supports:
 - katarinagresova/Genomic_Benchmarks_human_nontata_promoters (36k samples, 251bp sequences)
 - leannmlindsey/GUE fungi_species_20 (10k samples, 20-class fungal species classification)
 - leannmlindsey/GUE virus_species_40 (5k samples, 40-class viral species classification)
-- leannmlindsey/GUE human_ensembl_regulatory (289k samples, 3-class regulatory region classification)
 """
 
 from __future__ import annotations
@@ -178,14 +177,14 @@ def load_gue_virus_species(
     return pool, test_dataset, test_texts
 
 
-def load_gue_human_ensembl_regulatory(
+def load_gue_virus_covid(
     seed: int = 42,
     max_samples: int | None = None,
 ) -> tuple[DataPool, TextClassificationDataset, list[str]]:
-    """Load GUE human_ensembl_regulatory dataset.
+    """Load GUE virus_covid dataset.
 
-    3-class regulatory region classification: Enhancer / Promoter / Open Chromatin.
-    ~289,000 samples, ~401bp sequences. Has train/test splits.
+    9-class viral variant classification. ~73,000 train samples.
+    Has train/test splits.
 
     Args:
         seed: Random seed (used if max_samples is set).
@@ -194,7 +193,7 @@ def load_gue_human_ensembl_regulatory(
     Returns:
         (DataPool, test_dataset_placeholder, test_texts)
     """
-    ds: DatasetDict = load_dataset("leannmlindsey/GUE", "human_ensembl_regulatory")  # type: ignore[assignment]
+    ds: DatasetDict = load_dataset("leannmlindsey/GUE", "virus_covid")  # type: ignore[assignment]
 
     train_texts: list[str] = list(ds["train"]["sequence"])
     train_labels = np.array(ds["train"]["label"], dtype=np.intp)
@@ -218,6 +217,7 @@ def load_gue_human_ensembl_regulatory(
     test_dataset._raw_texts = test_texts  # type: ignore[attr-defined]
 
     return pool, test_dataset, test_texts
+
 
 
 def _split_to_pool(

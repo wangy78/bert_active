@@ -1,14 +1,14 @@
-experiment_name: "regulatory_random"
+experiment_name: "covid_bald"
 
 model:
   name: "zhihan1996/DNABERT-2-117M"
-  num_labels: 3
+  num_labels: 9
   attn_implementation: "flash_attention_2"
   torch_dtype: "float32"
   max_length: 128
 
 data:
-  dataset_name: "gue_human_ensembl_regulatory"
+  dataset_name: "gue_virus_covid"
   seed: 42
 
 pretrain:
@@ -28,13 +28,13 @@ active_learning:
   n_init: 100
   n_query: 100
   n_rounds: 20
-  strategy: "random"
+  strategy: "bald"
 
 wandb:
   enabled: true
   project: "bert-active-dna"
   entity: "codycjy"
-  tags: ["regulatory", "baseline", "random", "3class"]
-  notes: "Baseline: Human Ensembl Regulatory 3-class random"
+  tags: ["covid", "baseline", "bald", "9class"]
+  notes: "Baseline: Virus COVID 9-class bald"
 
 output_dir: "outputs"

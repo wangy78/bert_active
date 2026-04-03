@@ -1,14 +1,14 @@
-experiment_name: "regulatory_coreset"
+experiment_name: "covid_coreset"
 
 model:
   name: "zhihan1996/DNABERT-2-117M"
-  num_labels: 3
+  num_labels: 9
   attn_implementation: "flash_attention_2"
   torch_dtype: "float32"
   max_length: 128
 
 data:
-  dataset_name: "gue_human_ensembl_regulatory"
+  dataset_name: "gue_virus_covid"
   seed: 42
 
 pretrain:
@@ -34,7 +34,7 @@ wandb:
   enabled: true
   project: "bert-active-dna"
   entity: "codycjy"
-  tags: ["regulatory", "baseline", "coreset", "3class"]
-  notes: "Baseline: Human Ensembl Regulatory 3-class coreset"
+  tags: ["covid", "baseline", "coreset", "9class"]
+  notes: "Baseline: Virus COVID 9-class coreset"
 
 output_dir: "outputs"

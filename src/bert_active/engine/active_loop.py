@@ -10,7 +10,7 @@ from bert_active.config.experiment import ExperimentConfig, TrainerConfig
 from bert_active.data.dna_dataset import (
     load_dna_core_promoter,
     load_gue_fungi_species,
-    load_gue_human_ensembl_regulatory,
+    load_gue_virus_covid,
     load_gue_virus_species,
     load_human_nontata_promoters,
 )
@@ -115,16 +115,16 @@ class ActiveLearningLoop:
                 seed=config.data.seed,
                 max_samples=max_samples,
             )
-        elif dataset_name == "gue_human_ensembl_regulatory":
-            self.pool, test_dataset, test_texts = load_gue_human_ensembl_regulatory(
+        elif dataset_name == "gue_virus_covid":
+            self.pool, test_dataset, test_texts = load_gue_virus_covid(
                 seed=config.data.seed,
                 max_samples=max_samples,
             )
-        else:
+else:
             raise ValueError(
                 f"Unknown dataset: {dataset_name}. "
                 f"Supported: promoter, dna_core_promoter, human_nontata_promoters, "
-                f"gue_fungi_species, gue_virus_species, gue_human_ensembl_regulatory"
+                f"gue_fungi_species, gue_virus_species, gue_virus_covid"
             )
 
         # Tokenize test set
