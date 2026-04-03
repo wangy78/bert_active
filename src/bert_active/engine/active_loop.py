@@ -120,7 +120,7 @@ class ActiveLearningLoop:
                 seed=config.data.seed,
                 max_samples=max_samples,
             )
-else:
+        else:
             raise ValueError(
                 f"Unknown dataset: {dataset_name}. "
                 f"Supported: promoter, dna_core_promoter, human_nontata_promoters, "
