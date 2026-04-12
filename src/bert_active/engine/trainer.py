@@ -58,9 +58,10 @@ class Trainer:
             shuffle=True,
         )
 
-        # Create optimizer
+        # Create optimizer — only update trainable parameters (respects frozen backbone)
+        trainable_params = [p for p in self.model.model.parameters() if p.requires_grad]
         optimizer = torch.optim.AdamW(
-            self.model.model.parameters(),
+            trainable_params,
             lr=self.config.learning_rate,
             weight_decay=self.config.weight_decay,
         )

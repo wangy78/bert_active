@@ -48,6 +48,7 @@ class ActiveLearningConfig:
     strategy: str = "entropy"
     init_strategy: str = "random"   # "random" or "doptimal"
     strategy_params: dict[str, Any] = field(default_factory=dict)
+    freeze_backbone: bool = False  # Freeze transformer backbone, train only classification head
 
 
 @dataclass

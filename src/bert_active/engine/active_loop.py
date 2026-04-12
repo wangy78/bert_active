@@ -207,6 +207,10 @@ class ActiveLearningLoop:
             pretrain_trainer.train(source_dataset)
             print("=== Source domain pretraining complete ===")
 
+        if self.config.active_learning.freeze_backbone:
+            self.model_wrapper.freeze_backbone()
+            print("=== Backbone frozen: only classification head will be trained ===")
+
         if self.config.active_learning.init_strategy == "doptimal":
             self._initialize_doptimal(self.config.active_learning.n_init)
         else:

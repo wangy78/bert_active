@@ -238,6 +238,19 @@ class ModelWrapper:
         return np.concatenate(all_grad_embs, axis=0)
 
 
+    def freeze_backbone(self) -> None:
+        """Freeze all backbone (transformer) parameters; only classification head trains."""
+        backbone = self._get_backbone()
+        for param in backbone.parameters():
+            param.requires_grad = False
+
+    def unfreeze_backbone(self) -> None:
+        """Unfreeze all backbone parameters."""
+        backbone = self._get_backbone()
+        for param in backbone.parameters():
+            param.requires_grad = True
+
+
 def _enable_dropout(model: nn.Module) -> None:
     """Enable dropout layers during inference for MC Dropout."""
     for module in model.modules():
