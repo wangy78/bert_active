@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
+from pathlib import Path
 
 from bert_active.config.experiment import ExperimentConfig, TrainerConfig
 from bert_active.data.dna_dataset import (
@@ -182,30 +183,47 @@ class ActiveLearningLoop:
         """
         # Source domain pretraining (transfer learning)
         if self.config.pretrain.enabled and self.source_texts is not None:
-            print("=== Source domain pretraining ===")
-            source_dataset = build_dataset(
-                tokenizer=self.tokenizer,
-                texts=self.source_texts,
-                labels=self.source_labels,
-                max_length=self.config.model.max_length,
+            ckpt_dir = Path("checkpoints") / (
+                f"pretrained_{self.config.pretrain.source_species}"
+                f"_seed{self.config.data.seed}"
             )
-            pretrain_config = TrainerConfig(
-                learning_rate=self.config.pretrain.learning_rate,
-                batch_size=self.config.pretrain.batch_size,
-                num_epochs=self.config.pretrain.num_epochs,
-                weight_decay=self.config.trainer.weight_decay,
-                warmup_ratio=self.config.trainer.warmup_ratio,
-                max_grad_norm=self.config.trainer.max_grad_norm,
-                eval_batch_size=self.config.trainer.eval_batch_size,
-                device=self.config.trainer.device,
-            )
-            pretrain_trainer = Trainer(
-                model=self.model_wrapper,
-                config=pretrain_config,
-                wandb_run=self.wandb_run,
-            )
-            pretrain_trainer.train(source_dataset)
-            print("=== Source domain pretraining complete ===")
+            if ckpt_dir.exists():
+                print(f"=== Loading pretrained model from {ckpt_dir} ===")
+                import torch
+                from transformers import AutoModelForSequenceClassification
+                self.model_wrapper.model = AutoModelForSequenceClassification.from_pretrained(
+                    str(ckpt_dir),
+                    trust_remote_code=True,
+                ).to(self.model_wrapper.device)
+                print("=== Pretrained model loaded (skipping training) ===")
+            else:
+                print("=== Source domain pretraining ===")
+                source_dataset = build_dataset(
+                    tokenizer=self.tokenizer,
+                    texts=self.source_texts,
+                    labels=self.source_labels,
+                    max_length=self.config.model.max_length,
+                )
+                pretrain_config = TrainerConfig(
+                    learning_rate=self.config.pretrain.learning_rate,
+                    batch_size=self.config.pretrain.batch_size,
+                    num_epochs=self.config.pretrain.num_epochs,
+                    weight_decay=self.config.trainer.weight_decay,
+                    warmup_ratio=self.config.trainer.warmup_ratio,
+                    max_grad_norm=self.config.trainer.max_grad_norm,
+                    eval_batch_size=self.config.trainer.eval_batch_size,
+                    device=self.config.trainer.device,
+                )
+                pretrain_trainer = Trainer(
+                    model=self.model_wrapper,
+                    config=pretrain_config,
+                    wandb_run=self.wandb_run,
+                )
+                pretrain_trainer.train(source_dataset)
+                ckpt_dir.mkdir(parents=True, exist_ok=True)
+                self.model_wrapper.model.save_pretrained(str(ckpt_dir))
+                self.tokenizer.save_pretrained(str(ckpt_dir))
+                print(f"=== Pretrained model saved → {ckpt_dir} ===")
 
         if self.config.active_learning.freeze_backbone:
             self.model_wrapper.freeze_backbone()

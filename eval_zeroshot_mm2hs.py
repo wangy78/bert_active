@@ -20,6 +20,7 @@ Usage:
 
 import argparse
 import logging
+from pathlib import Path
 
 import wandb
 from bert_active.config.experiment import (
@@ -107,8 +108,8 @@ def run_zeroshot(seed: int, use_wandb: bool) -> dict[str, float]:
         max_length=model_cfg.max_length,
     )
 
-    # ── Train on mouse ────────────────────────────────────────────────────────
-    log.info(f"Pretraining on mouse: {len(source_texts)} sequences, {pretrain_cfg.num_epochs} epochs")
+    # ── Train on mouse (or load cached checkpoint) ────────────────────────────
+    ckpt_dir = Path("checkpoints") / f"pretrained_mm_seed{seed}"
     model = create_model(
         model_name=model_cfg.name,
         num_labels=model_cfg.num_labels,
@@ -116,8 +117,22 @@ def run_zeroshot(seed: int, use_wandb: bool) -> dict[str, float]:
         torch_dtype=model_cfg.torch_dtype,
     )
     model_wrapper = ModelWrapper(model=model, device=trainer_cfg.device)
-    trainer = Trainer(model=model_wrapper, config=trainer_cfg, wandb_run=wandb_run)
-    trainer.train(source_dataset)
+
+    if ckpt_dir.exists():
+        log.info(f"Loading pretrained mouse model from {ckpt_dir}")
+        import torch
+        from transformers import AutoModelForSequenceClassification
+        model_wrapper.model = AutoModelForSequenceClassification.from_pretrained(
+            str(ckpt_dir), trust_remote_code=True,
+        ).to(model_wrapper.device)
+    else:
+        log.info(f"Pretraining on mouse: {len(source_texts)} sequences, {pretrain_cfg.num_epochs} epochs")
+        trainer = Trainer(model=model_wrapper, config=trainer_cfg, wandb_run=wandb_run)
+        trainer.train(source_dataset)
+        ckpt_dir.mkdir(parents=True, exist_ok=True)
+        model_wrapper.model.save_pretrained(str(ckpt_dir))
+        tokenizer.save_pretrained(str(ckpt_dir))
+        log.info(f"Saved pretrained model → {ckpt_dir}")
 
     # ── Evaluate on human (zero-shot) ─────────────────────────────────────────
     log.info("Evaluating on human test set (zero-shot)...")
