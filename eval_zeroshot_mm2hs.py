@@ -118,21 +118,20 @@ def run_zeroshot(seed: int, use_wandb: bool) -> dict[str, float]:
     )
     model_wrapper = ModelWrapper(model=model, device=trainer_cfg.device)
 
-    if ckpt_dir.exists():
-        log.info(f"Loading pretrained mouse model from {ckpt_dir}")
+    ckpt_file = ckpt_dir / "model_state_dict.pt"
+    if ckpt_file.exists():
+        log.info(f"Loading pretrained mouse weights from {ckpt_file}")
         import torch
-        from transformers import AutoModelForSequenceClassification
-        model_wrapper.model = AutoModelForSequenceClassification.from_pretrained(
-            str(ckpt_dir), trust_remote_code=True,
-        ).to(model_wrapper.device)
+        state_dict = torch.load(str(ckpt_file), map_location=model_wrapper.device)
+        model_wrapper.model.load_state_dict(state_dict)
     else:
         log.info(f"Pretraining on mouse: {len(source_texts)} sequences, {pretrain_cfg.num_epochs} epochs")
         trainer = Trainer(model=model_wrapper, config=trainer_cfg, wandb_run=wandb_run)
         trainer.train(source_dataset)
+        import torch
         ckpt_dir.mkdir(parents=True, exist_ok=True)
-        model_wrapper.model.save_pretrained(str(ckpt_dir))
-        tokenizer.save_pretrained(str(ckpt_dir))
-        log.info(f"Saved pretrained model → {ckpt_dir}")
+        torch.save(model_wrapper.model.state_dict(), str(ckpt_file))
+        log.info(f"Saved pretrained weights → {ckpt_file}")
 
     # ── Evaluate on human (zero-shot) ─────────────────────────────────────────
     log.info("Evaluating on human test set (zero-shot)...")

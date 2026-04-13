@@ -187,15 +187,13 @@ class ActiveLearningLoop:
                 f"pretrained_{self.config.pretrain.source_species}"
                 f"_seed{self.config.data.seed}"
             )
-            if ckpt_dir.exists():
-                print(f"=== Loading pretrained model from {ckpt_dir} ===")
+            ckpt_file = ckpt_dir / "model_state_dict.pt"
+            if ckpt_file.exists():
+                print(f"=== Loading pretrained weights from {ckpt_file} ===")
                 import torch
-                from transformers import AutoModelForSequenceClassification
-                self.model_wrapper.model = AutoModelForSequenceClassification.from_pretrained(
-                    str(ckpt_dir),
-                    trust_remote_code=True,
-                ).to(self.model_wrapper.device)
-                print("=== Pretrained model loaded (skipping training) ===")
+                state_dict = torch.load(str(ckpt_file), map_location=self.model_wrapper.device)
+                self.model_wrapper.model.load_state_dict(state_dict)
+                print("=== Pretrained weights loaded (skipping training) ===")
             else:
                 print("=== Source domain pretraining ===")
                 source_dataset = build_dataset(
@@ -220,10 +218,10 @@ class ActiveLearningLoop:
                     wandb_run=self.wandb_run,
                 )
                 pretrain_trainer.train(source_dataset)
+                import torch
                 ckpt_dir.mkdir(parents=True, exist_ok=True)
-                self.model_wrapper.model.save_pretrained(str(ckpt_dir))
-                self.tokenizer.save_pretrained(str(ckpt_dir))
-                print(f"=== Pretrained model saved → {ckpt_dir} ===")
+                torch.save(self.model_wrapper.model.state_dict(), str(ckpt_file))
+                print(f"=== Pretrained weights saved → {ckpt_file} ===")
 
         if self.config.active_learning.freeze_backbone:
             self.model_wrapper.freeze_backbone()
