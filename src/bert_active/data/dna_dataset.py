@@ -220,6 +220,82 @@ def load_gue_virus_covid(
 
 
 
+def _load_nt_task(
+    task_name: str,
+    seed: int = 42,
+    max_samples: int | None = None,
+) -> tuple[DataPool, TextClassificationDataset, list[str]]:
+    """Helper: load a single task from NT downstream tasks dataset by filtering on 'task' column."""
+    ds: DatasetDict = load_dataset(
+        "InstaDeepAI/nucleotide_transformer_downstream_tasks"
+    )  # type: ignore[assignment]
+
+    train_split = ds["train"].filter(lambda x: x["task"] == task_name)
+    test_split = ds["test"].filter(lambda x: x["task"] == task_name)
+
+    train_texts: list[str] = list(train_split["sequence"])
+    train_labels = np.array(train_split["label"], dtype=np.intp)
+
+    if max_samples is not None:
+        rng = np.random.default_rng(seed)
+        idx = rng.choice(len(train_texts), size=min(max_samples, len(train_texts)), replace=False)
+        train_texts = [train_texts[i] for i in idx]
+        train_labels = train_labels[idx]
+
+    pool = DataPool(texts=train_texts, labels=train_labels)
+
+    test_texts: list[str] = list(test_split["sequence"])
+    test_labels = np.array(test_split["label"], dtype=np.intp)
+
+    test_dataset = TextClassificationDataset(
+        input_ids=np.zeros((len(test_texts), 1), dtype=np.intp),
+        attention_mask=np.zeros((len(test_texts), 1), dtype=np.intp),
+        labels=test_labels,
+    )
+    test_dataset._raw_texts = test_texts  # type: ignore[attr-defined]
+
+    return pool, test_dataset, test_texts
+
+
+def load_nt_h3k4me3(
+    seed: int = 42,
+    max_samples: int | None = None,
+) -> tuple[DataPool, TextClassificationDataset, list[str]]:
+    """Load H3K4me3 histone mark dataset from NT downstream tasks.
+
+    Binary classification: H3K4me3 mark present (1) vs absent (0).
+    ~30,000 human sequences, 200bp. Used as source for cross-task transfer.
+    Has train/test splits.
+    """
+    return _load_nt_task("H3K4me3", seed=seed, max_samples=max_samples)
+
+
+def load_nt_enhancers(
+    seed: int = 42,
+    max_samples: int | None = None,
+) -> tuple[DataPool, TextClassificationDataset, list[str]]:
+    """Load enhancers dataset from NT downstream tasks.
+
+    Binary classification: enhancer (1) vs background (0).
+    ~14,000 human sequences, 200bp. Target for A1 cross-task transfer.
+    Has train/test splits.
+    """
+    return _load_nt_task("enhancers", seed=seed, max_samples=max_samples)
+
+
+def load_nt_enhancers_types(
+    seed: int = 42,
+    max_samples: int | None = None,
+) -> tuple[DataPool, TextClassificationDataset, list[str]]:
+    """Load enhancers_types dataset from NT downstream tasks.
+
+    3-class classification: strong enhancer (0) / weak enhancer (1) / background (2).
+    ~14,000 human sequences, 200bp. Target for A2 cross-task transfer.
+    Has train/test splits.
+    """
+    return _load_nt_task("enhancers_types", seed=seed, max_samples=max_samples)
+
+
 def _split_to_pool(
     sequences: list[str],
     labels: NDArray[np.intp],
