@@ -1,0 +1,45 @@
+experiment_name: "nt_enhancer_types_transfer_random"
+
+model:
+  name: "zhihan1996/DNABERT-2-117M"
+  num_labels: 3
+  attn_implementation: "flash_attention_2"
+  torch_dtype: "float32"
+  max_length: 200
+
+data:
+  dataset_name: "nt_enhancer_types"
+  seed: 42
+
+pretrain:
+  enabled: true
+  source_dataset_name: "nt_h3k4me3"
+  num_epochs: 10
+  learning_rate: 2e-5
+  batch_size: 16
+
+trainer:
+  learning_rate: 2e-5
+  weight_decay: 0.01
+  batch_size: 16
+  eval_batch_size: 32
+  num_epochs: 5
+  warmup_ratio: 0.1
+  max_grad_norm: 1.0
+  device: "cuda"
+
+active_learning:
+  n_init: 100
+  n_query: 100
+  n_rounds: 20
+  strategy: "random"
+  freeze_backbone: false
+
+wandb:
+  enabled: true
+  project: "bert-active-dna"
+  entity: "codycjy"
+  tags: ["nt_downstream", "transfer", "h3k4me3_to_enhancer_types", "full-finetune"]
+  notes: "H3K4me3 pretrain -> enhancer types (3-class), full fine-tune + random AL"
+
+output_dir: "outputs"
