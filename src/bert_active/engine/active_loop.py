@@ -211,6 +211,7 @@ class ActiveLearningLoop:
             )
             ckpt_dir = Path("checkpoints") / (
                 f"pretrained_{source_key}"
+                f"_nl{self.config.model.num_labels}"
                 f"_seed{self.config.data.seed}"
             )
             ckpt_file = ckpt_dir / "model_state_dict.pt"
