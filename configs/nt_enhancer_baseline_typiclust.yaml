@@ -1,0 +1,41 @@
+experiment_name: "nt_enhancer_baseline_typiclust"
+
+model:
+  name: "zhihan1996/DNABERT-2-117M"
+  num_labels: 2
+  attn_implementation: "flash_attention_2"
+  torch_dtype: "float32"
+  max_length: 200
+
+data:
+  dataset_name: "nt_enhancers"
+  seed: 42
+
+pretrain:
+  enabled: false
+
+trainer:
+  learning_rate: 2e-5
+  weight_decay: 0.01
+  batch_size: 16
+  eval_batch_size: 32
+  num_epochs: 5
+  warmup_ratio: 0.1
+  max_grad_norm: 1.0
+  device: "cuda"
+
+active_learning:
+  n_init: 100
+  n_query: 100
+  n_rounds: 20
+  strategy: "typiclust"
+  freeze_backbone: false
+
+wandb:
+  enabled: true
+  project: "bert-active-dna"
+  entity: "codycjy"
+  tags: ["nt_downstream", "cold_start", "typiclust"]
+  notes: "NT enhancers from scratch, TypiClust AL"
+
+output_dir: "outputs"
