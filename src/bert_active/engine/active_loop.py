@@ -14,6 +14,9 @@ from bert_active.data.dna_dataset import (
     load_gue_virus_covid,
     load_gue_virus_species,
     load_human_nontata_promoters,
+    load_nt_enhancers,
+    load_nt_enhancers_types,
+    load_nt_h3k4me3,
 )
 from bert_active.data.promoter_dataset import load_promoter_species, load_transfer_data
 from bert_active.data.tokenization import (
@@ -121,11 +124,30 @@ class ActiveLearningLoop:
                 seed=config.data.seed,
                 max_samples=max_samples,
             )
+        elif dataset_name == "nt_enhancers":
+            self.pool, test_dataset, test_texts = load_nt_enhancers(
+                seed=config.data.seed,
+                max_samples=max_samples,
+            )
+            if config.pretrain.enabled:
+                source_pool, _, _ = load_nt_h3k4me3(seed=config.data.seed)
+                self.source_texts = source_pool.texts
+                self.source_labels = source_pool.labels
+        elif dataset_name == "nt_enhancer_types":
+            self.pool, test_dataset, test_texts = load_nt_enhancers_types(
+                seed=config.data.seed,
+                max_samples=max_samples,
+            )
+            if config.pretrain.enabled:
+                source_pool, _, _ = load_nt_h3k4me3(seed=config.data.seed)
+                self.source_texts = source_pool.texts
+                self.source_labels = source_pool.labels
         else:
             raise ValueError(
                 f"Unknown dataset: {dataset_name}. "
                 f"Supported: promoter, dna_core_promoter, human_nontata_promoters, "
-                f"gue_fungi_species, gue_virus_species, gue_virus_covid"
+                f"gue_fungi_species, gue_virus_species, gue_virus_covid, "
+                f"nt_enhancers, nt_enhancer_types"
             )
 
         # Tokenize test set
