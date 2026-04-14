@@ -64,6 +64,7 @@ class WandbConfig:
 class PretrainConfig:
     enabled: bool = False
     source_species: str = "hs"
+    source_dataset_name: str | None = None  # NT cross-task transfer source, e.g. "nt_h3k4me3"
     num_epochs: int = 10
     learning_rate: float = 2e-5
     batch_size: int = 16

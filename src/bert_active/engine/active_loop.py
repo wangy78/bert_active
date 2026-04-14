@@ -183,8 +183,12 @@ class ActiveLearningLoop:
         """
         # Source domain pretraining (transfer learning)
         if self.config.pretrain.enabled and self.source_texts is not None:
+            source_key = (
+                self.config.pretrain.source_dataset_name
+                or self.config.pretrain.source_species
+            )
             ckpt_dir = Path("checkpoints") / (
-                f"pretrained_{self.config.pretrain.source_species}"
+                f"pretrained_{source_key}"
                 f"_seed{self.config.data.seed}"
             )
             ckpt_file = ckpt_dir / "model_state_dict.pt"
