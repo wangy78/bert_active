@@ -130,7 +130,7 @@ class ActiveLearningLoop:
                 max_samples=max_samples,
             )
             if config.pretrain.enabled:
-                source_pool, _, _ = load_nt_h3k4me3(seed=config.data.seed)
+                source_pool, _, _ = load_nt_h3k4me3(seed=config.data.seed)  # full source for pretraining
                 self.source_texts = source_pool.texts
                 self.source_labels = source_pool.labels
         elif dataset_name == "nt_enhancer_types":
@@ -139,7 +139,7 @@ class ActiveLearningLoop:
                 max_samples=max_samples,
             )
             if config.pretrain.enabled:
-                source_pool, _, _ = load_nt_h3k4me3(seed=config.data.seed)
+                source_pool, _, _ = load_nt_h3k4me3(seed=config.data.seed)  # full source for pretraining
                 self.source_texts = source_pool.texts
                 self.source_labels = source_pool.labels
         else:
