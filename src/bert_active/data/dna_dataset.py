@@ -225,7 +225,15 @@ def _load_nt_task(
     seed: int = 42,
     max_samples: int | None = None,
 ) -> tuple[DataPool, TextClassificationDataset, list[str]]:
-    """Helper: load a single task from NT downstream tasks dataset by filtering on 'task' column."""
+    """Helper: load a single task from NT downstream tasks dataset by filtering on 'task' column.
+
+    NOTE: The named-config API (load_dataset(..., task_name)) does NOT work for this dataset.
+    The dataset only exposes a single 'default' config, so all 18 tasks are packed into one
+    split and differentiated by a 'task' column.  Attempting to pass the task name as a
+    config name raises:
+        ValueError: BuilderConfig '<task>' not found. Available: ['default']
+    Therefore the .filter() approach below is intentional and necessary.
+    """
     ds: DatasetDict = load_dataset(
         "InstaDeepAI/nucleotide_transformer_downstream_tasks"
     )  # type: ignore[assignment]
