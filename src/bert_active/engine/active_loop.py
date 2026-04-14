@@ -33,6 +33,7 @@ from bert_active.strategies.bayesian import BALDStrategy
 from bert_active.strategies.coreset import CoreSetStrategy
 from bert_active.strategies.doptimal import DOptimalStrategy
 from bert_active.strategies.random import RandomStrategy
+from bert_active.strategies.typiclust import TypiClustStrategy
 from bert_active.strategies.uncertainty import (
     EntropyStrategy,
     LeastConfidenceStrategy,
@@ -52,6 +53,7 @@ STRATEGY_REGISTRY: dict[str, type[Strategy]] = {
     "batch_bald": BatchBALDStrategy,
     "coreset": CoreSetStrategy,
     "doptimal": DOptimalStrategy,
+    "typiclust": TypiClustStrategy,
 }
 
 
